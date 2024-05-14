@@ -71,11 +71,11 @@ public:
                         const BUFFER_SOURCE bufferSource = BUFFER_SOURCE::INTERNAL_BUFFER,
                         unsigned char* const externalBuffer = nullptr);
 
-    protocol_serializer(const protocol_serializer& wrapper);
-    protocol_serializer& operator=(const protocol_serializer& wrapper);
+    protocol_serializer(const protocol_serializer& other);
+    protocol_serializer& operator=(const protocol_serializer& other);
 
-    protocol_serializer(protocol_serializer&& wrapper);
-    protocol_serializer& operator=(protocol_serializer&& wrapper);
+    protocol_serializer(protocol_serializer&& other) noexcept;
+    protocol_serializer& operator=(protocol_serializer&& other) noexcept;
 
     virtual ~protocol_serializer();
 
@@ -102,7 +102,7 @@ public:
     unsigned char* getFieldBytePointer(const std::string &fieldName) const;
 
     bool appendField(const field &field);
-    bool appendProtocol(const protocol_serializer& wrapper);
+    bool appendProtocol(const protocol_serializer& other);
 
     void removeLastField();
     void removeAllFields();
@@ -254,6 +254,9 @@ public:
     }
 
 private:
+    void copyFrom(const protocol_serializer& other);
+    void moveFrom(protocol_serializer&& other);
+
     template<class T>
     void _setFieldValue(const field_metadata& field, const T& value, std::string* errorString = nullptr)
     {
@@ -434,7 +437,7 @@ private:
     mutable unsigned int m_prealloc_finalBytesCount = 0;
     mutable uint64_t m_prealloc_val = 0;
     mutable unsigned char* m_prealloc_ptrToFirstCopyableMostSignificantByte = nullptr;
-    mutable unsigned char m_prealloc_rawBytes[65];
+    mutable unsigned char m_prealloc_rawBytes[65] = "";
     mutable fields_metadata_t::const_iterator m_prealloc_fieldMetadataItt;
 
 private:

@@ -31,61 +31,71 @@ protocol_serializer::protocol_serializer(const std::vector<field>& fields, const
         removeAllFields();
 }
 
-protocol_serializer::protocol_serializer(const protocol_serializer& wrapper)
+void ez::protocol_serializer::copyFrom(const protocol_serializer& other)
 {
     m_internalBuffer = nullptr;
-    m_internalBufferLength = wrapper.m_internalBufferLength;
+    m_internalBufferLength = other.m_internalBufferLength;
 
     if (m_internalBufferLength)
     {
         m_internalBuffer = new unsigned char[m_internalBufferLength];
-        if (wrapper.m_internalBuffer != nullptr)
-            memcpy(m_internalBuffer, wrapper.m_internalBuffer, m_internalBufferLength);
+        if (other.m_internalBuffer != nullptr)
+            memcpy(m_internalBuffer, other.m_internalBuffer, m_internalBufferLength);
     }
 
-    m_externalBuffer = wrapper.m_externalBuffer;
+    m_externalBuffer = other.m_externalBuffer;
 
-    m_fields = wrapper.m_fields;
-    m_fieldsMetadata = wrapper.m_fieldsMetadata;
-    m_protocolByteOrder = wrapper.m_protocolByteOrder;
-    m_bufferSource = wrapper.m_bufferSource;
+    m_fields = other.m_fields;
+    m_fieldsMetadata = other.m_fieldsMetadata;
+    m_protocolByteOrder = other.m_protocolByteOrder;
+    m_bufferSource = other.m_bufferSource;
     m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer : m_externalBuffer;
 }
 
-protocol_serializer& protocol_serializer::operator=(const protocol_serializer& wrapper)
+protocol_serializer::protocol_serializer(const protocol_serializer& other)
+{
+    copyFrom(other);
+}
+
+protocol_serializer& protocol_serializer::operator=(const protocol_serializer& other)
 {
     if (m_internalBuffer != nullptr)
         delete[] m_internalBuffer;
     m_internalBuffer = nullptr;
 
-    protocol_serializer::protocol_serializer(wrapper);
+    copyFrom(other);
     return *this;
 }
 
-protocol_serializer::protocol_serializer(protocol_serializer&& wrapper)
+void ez::protocol_serializer::moveFrom(protocol_serializer&& other)
 {
     m_internalBuffer = nullptr;
 
-    m_internalBufferLength = wrapper.m_internalBufferLength;
-    m_internalBuffer = wrapper.m_internalBuffer;
-    wrapper.m_internalBuffer = nullptr;
+    m_internalBufferLength = other.m_internalBufferLength;
+    m_internalBuffer = other.m_internalBuffer;
+    other.m_internalBuffer = nullptr;
 
-    m_externalBuffer = wrapper.m_externalBuffer;
+    m_externalBuffer = other.m_externalBuffer;
 
-    m_fields = std::move(wrapper.m_fields);
-    m_fieldsMetadata = std::move(wrapper.m_fieldsMetadata);
-    m_protocolByteOrder = wrapper.m_protocolByteOrder;
-    m_bufferSource = wrapper.m_bufferSource;
-    m_workingBuffer = wrapper.m_workingBuffer;
+    m_fields = std::move(other.m_fields);
+    m_fieldsMetadata = std::move(other.m_fieldsMetadata);
+    m_protocolByteOrder = other.m_protocolByteOrder;
+    m_bufferSource = other.m_bufferSource;
+    m_workingBuffer = other.m_workingBuffer;
 }
 
-protocol_serializer& protocol_serializer::operator=(protocol_serializer&& wrapper)
+protocol_serializer::protocol_serializer(protocol_serializer&& other) noexcept
+{
+    moveFrom(std::move(other));
+}
+
+protocol_serializer& protocol_serializer::operator=(protocol_serializer&& other) noexcept
 {
     if (m_internalBuffer != nullptr)
         delete[] m_internalBuffer;
     m_internalBuffer = nullptr;
 
-    protocol_serializer::protocol_serializer(std::move(wrapper));
+    moveFrom(std::move(other));
     return *this;
 }
 
@@ -406,17 +416,17 @@ bool protocol_serializer::appendField(const field& field)
     return true;
 }
 
-bool protocol_serializer::appendProtocol(const protocol_serializer& wrapper)
+bool protocol_serializer::appendProtocol(const protocol_serializer& other)
 {
-    for (fields_metadata_t::const_iterator itt = wrapper.m_fieldsMetadata.cbegin(); itt != wrapper.m_fieldsMetadata.cend(); ++itt)
+    for (fields_metadata_t::const_iterator itt = other.m_fieldsMetadata.cbegin(); itt != other.m_fieldsMetadata.cend(); ++itt)
     {
         if (m_fieldsMetadata.find(itt->first) != m_fieldsMetadata.cend())
             return false;
     }
 
-    for (const std::string& fieldName : wrapper.m_fields)
+    for (const std::string& fieldName : other.m_fields)
     {
-        const field_metadata& fieldMetadata = wrapper.m_fieldsMetadata.find(fieldName)->second;
+        const field_metadata& fieldMetadata = other.m_fieldsMetadata.find(fieldName)->second;
         appendField(protocol_serializer::field{fieldMetadata.name, fieldMetadata.bitCount});
     }
 
