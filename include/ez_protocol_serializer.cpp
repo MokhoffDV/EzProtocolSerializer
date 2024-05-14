@@ -5,8 +5,6 @@ using ez::protocol_serializer;
 protocol_serializer::protocol_serializer(const protocol_serializer::P_BYTE_ORDER byteOrder, const protocol_serializer::BUFFER_SOURCE bufferSource, unsigned char* const externalBuffer)
     : m_protocolByteOrder(byteOrder)
     , m_bufferSource(bufferSource)
-    , m_internalBuffer(nullptr)
-    , m_internalBufferLength(0)
 {
     if (bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER)
         m_workingBuffer = m_internalBuffer;
@@ -380,16 +378,16 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
 
 unsigned char* protocol_serializer::getFieldBytePointer(const std::string& fieldName) const
 {
-    mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+    m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
 
-    if (mService_fieldMetadataItt == m_fieldsMetadata.cend())
+    if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend())
     {
         printf("Protocol::getFieldFirstBytePointer. There is no field '%s'!\n", fieldName.c_str());
         return nullptr;
     }
 
     unsigned char* workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer : m_externalBuffer;
-    const field_metadata& field = mService_fieldMetadataItt->second;
+    const field_metadata& field = m_prealloc_fieldMetadataItt->second;
     return workingBuffer + field.firstByteInd;
 }
 

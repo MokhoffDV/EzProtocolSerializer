@@ -111,14 +111,14 @@ public:
     template<class T>
     void setFieldValue(const std::string& fieldName, const T& value, std::string* errorString = nullptr)
     {
-        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
-        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend())
         {
             if(errorString != nullptr)
                 *errorString = getStringFromFormat("Protocol::setFieldValue. There is no field '%s'!\n", fieldName.c_str());
             return;
         }
-        _setFieldValue(mService_fieldMetadataItt->second, value, errorString);
+        _setFieldValue(m_prealloc_fieldMetadataItt->second, value, errorString);
     }
 
     template<class T>
@@ -131,15 +131,15 @@ public:
     template<class T, size_t N>
     void setFieldValueAsArray(const std::string& fieldName, const T array[N], std::string* errorString = nullptr)
     {
-        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
-        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend())
         {
             if(errorString != nullptr)
                 *errorString = getStringFromFormat("Protocol::setFieldValueAsArray.There is no field '%s'!\n", fieldName.c_str());
             return;
         }
 
-        const field_metadata& field = mService_fieldMetadataItt->second;
+        const field_metadata& field = m_prealloc_fieldMetadataItt->second;
         if(field.bitCount % N) {
             if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
                 fieldName.c_str(), field.bitCount, N);
@@ -184,14 +184,14 @@ public:
     template<class T>
     T readFieldValue(const std::string &fieldName, std::string* errorString = nullptr) const
     {
-        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
-        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend())
         {
             if(errorString != nullptr)
                 *errorString = getStringFromFormat("Protocol::readFieldValue. There is no field '%s'!\n", fieldName.c_str());
             return T{};
         }
-        return _readFieldValue<T>(mService_fieldMetadataItt->second, errorString);
+        return _readFieldValue<T>(m_prealloc_fieldMetadataItt->second, errorString);
     }
 
     template<class T>
@@ -203,15 +203,15 @@ public:
     template<class T, size_t N>
     void readFieldValueAsArray(const std::string &fieldName, T array[N], std::string* errorString = nullptr) const
     {
-        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
-        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend())
         {
             if(errorString != nullptr)
                 *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. There is no field '%s'!\n", fieldName.c_str());
             return;
         }
 
-        const field_metadata& field = mService_fieldMetadataItt->second;
+        const field_metadata& field = m_prealloc_fieldMetadataItt->second;
         if(field.bitCount % N) {
             if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
                 fieldName.c_str(), field.bitCount, N);
@@ -279,45 +279,45 @@ private:
             return;
         }
 
-        memset(mService_rawBytes, 0, 65);
+        memset(m_prealloc_rawBytes, 0, 65);
         if(std::is_integral<T>::value) {
-            mService_val = value;
-            mService_ptrToFirstCopyableMostSignificantByte = (unsigned char*)&mService_val;
+            m_prealloc_val = value;
+            m_prealloc_ptrToFirstCopyableMostSignificantByte = (unsigned char*)&m_prealloc_val;
             if(getMachineByteOrder() == P_BYTE_ORDER::P_BIG_ENDIAN) {
-                mService_ptrToFirstCopyableMostSignificantByte += sizeof(uint64_t) - field.bytesCount;
+                m_prealloc_ptrToFirstCopyableMostSignificantByte += sizeof(uint64_t) - field.bytesCount;
             }
-            memcpy(mService_rawBytes, mService_ptrToFirstCopyableMostSignificantByte, field.bytesCount);
+            memcpy(m_prealloc_rawBytes, m_prealloc_ptrToFirstCopyableMostSignificantByte, field.bytesCount);
             if(getMachineByteOrder() != m_protocolByteOrder)
                 for(uint32_t i = 0; i < field.bytesCount/2; ++i)
-                    std::swap(mService_rawBytes[i], mService_rawBytes[field.bytesCount-1-i]);
+                    std::swap(m_prealloc_rawBytes[i], m_prealloc_rawBytes[field.bytesCount-1-i]);
         } else if(std::is_floating_point<T>::value) {
             if(field.bytesCount == 4) {
                 float val = value;
-                memcpy(mService_rawBytes, &val, 4);
+                memcpy(m_prealloc_rawBytes, &val, 4);
             } else if(field.bytesCount == 8) {
                 double val = value;
-                memcpy(mService_rawBytes, &val, 8);
+                memcpy(m_prealloc_rawBytes, &val, 8);
             }
         }
 
         if(field.leftSpacing == 0 && field.rightSpacing == 0) {
-            memcpy(m_workingBuffer + field.firstByteInd, mService_rawBytes, field.bytesCount);
+            memcpy(m_workingBuffer + field.firstByteInd, m_prealloc_rawBytes, field.bytesCount);
             return;
         }
 
-        mService_finalBytes = mService_rawBytes;
+        m_prealloc_finalBytes = m_prealloc_rawBytes;
         if(field.rightSpacing) {
-            shiftRight(mService_rawBytes, field.bytesCount + 1, 8-field.rightSpacing);
+            shiftRight(m_prealloc_rawBytes, field.bytesCount + 1, 8-field.rightSpacing);
             if(unsigned char transferableBitsCount = field.bitCount%8)
                 if(8-field.rightSpacing >= transferableBitsCount)
-                    mService_finalBytes = mService_rawBytes+1;
+                    m_prealloc_finalBytes = m_prealloc_rawBytes+1;
         }
 
         unsigned char mask = 0;
         for(uint32_t i = 0; i < field.touchedBytesCount; ++i) {
             mask = i==0?field.firstMask:i!=field.touchedBytesCount-1?0xFF:field.lastMask;
             m_workingBuffer[field.firstByteInd + i] &= ~mask;
-            m_workingBuffer[field.firstByteInd + i] |= mService_finalBytes[i] & mask;
+            m_workingBuffer[field.firstByteInd + i] |= m_prealloc_finalBytes[i] & mask;
         }
     }
 
@@ -348,57 +348,57 @@ private:
             return T{};
         }
 
-        memset(mService_rawBytes, 0, 65);
-        memcpy(mService_rawBytes, m_workingBuffer + field.firstByteInd, field.touchedBytesCount);
+        memset(m_prealloc_rawBytes, 0, 65);
+        memcpy(m_prealloc_rawBytes, m_workingBuffer + field.firstByteInd, field.touchedBytesCount);
 
-        mService_finalBytes = mService_rawBytes;
-        mService_finalBytesCount = field.bytesCount;
+        m_prealloc_finalBytes = m_prealloc_rawBytes;
+        m_prealloc_finalBytesCount = field.bytesCount;
         if(field.rightSpacing || field.leftSpacing) {
-            mService_rawBytes[0] &= field.firstMask;
+            m_prealloc_rawBytes[0] &= field.firstMask;
             if(field.touchedBytesCount > 1)
-                mService_rawBytes[field.touchedBytesCount-1] &= field.lastMask;
+                m_prealloc_rawBytes[field.touchedBytesCount-1] &= field.lastMask;
 
             if(field.rightSpacing) {
-                shiftRight(mService_rawBytes, field.touchedBytesCount, field.rightSpacing);
-                mService_finalBytes = mService_rawBytes + field.touchedBytesCount - field.bytesCount;
+                shiftRight(m_prealloc_rawBytes, field.touchedBytesCount, field.rightSpacing);
+                m_prealloc_finalBytes = m_prealloc_rawBytes + field.touchedBytesCount - field.bytesCount;
             }
         }
 
         if(std::is_floating_point<T>::value) {
             if(field.bytesCount == 4)
-                return static_cast<T>(*reinterpret_cast<float*>(mService_finalBytes));
+                return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_finalBytes));
             else if(field.bytesCount == 8)
-                return static_cast<T>(*reinterpret_cast<double*>(mService_finalBytes));
+                return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_finalBytes));
         }
 
         if(getMachineByteOrder() != m_protocolByteOrder)
             for(uint32_t i = 0; i < field.bytesCount/2; ++i)
-                std::swap(mService_finalBytes[i], mService_finalBytes[field.bytesCount-i-1]);
+                std::swap(m_prealloc_finalBytes[i], m_prealloc_finalBytes[field.bytesCount-i-1]);
 
         if(field.bytesCount > sizeof(T)) {
             if(getMachineByteOrder() == P_BYTE_ORDER::P_BIG_ENDIAN) {
-                mService_finalBytes += field.bytesCount - sizeof(T);
-                mService_finalBytesCount -= field.bytesCount - sizeof(T);
+                m_prealloc_finalBytes += field.bytesCount - sizeof(T);
+                m_prealloc_finalBytesCount -= field.bytesCount - sizeof(T);
             }
         }
 
         if(std::is_signed_v<T>) {
             if(getMachineByteOrder() == P_BYTE_ORDER::P_BIG_ENDIAN) {
-                if(mService_finalBytes[0] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8)))
-                    return (*reinterpret_cast<T*>(mService_finalBytes)) - ((uint64_t)1 << (std::min(mService_finalBytesCount*8, field.bitCount)));
+                if(m_prealloc_finalBytes[0] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8)))
+                    return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount*8, field.bitCount)));
             } else {
                 if(field.bitCount < 8) {
-                    if(mService_finalBytes[mService_finalBytesCount - 1] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8)))
-                        return (*reinterpret_cast<T*>(mService_finalBytes)) - ((uint64_t)1 << (std::min(mService_finalBytesCount*8, field.bitCount)));
+                    if(m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8)))
+                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount*8, field.bitCount)));
                 } else {
-                    if(mService_finalBytes[mService_finalBytesCount - 1] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8))) {
-                        return (*reinterpret_cast<T*>(mService_finalBytes)) - ((uint64_t)1 << (std::min(mService_finalBytesCount*8, field.bitCount)));
+                    if(m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8))) {
+                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount*8, field.bitCount)));
                     }
                 }
             }
         }
 
-        return *reinterpret_cast<T*>(mService_finalBytes);
+        return *reinterpret_cast<T*>(m_prealloc_finalBytes);
     }
 
     static void shiftLeft(unsigned char* buf, int len, unsigned char shift);
@@ -425,17 +425,17 @@ private:
         return std::string(buf.get(), buf.get() + size_s - 1);
     }
 
-    unsigned char* m_internalBuffer;
-    unsigned int m_internalBufferLength;
-    unsigned char* m_externalBuffer;
-    unsigned char* m_workingBuffer;
+    unsigned char* m_internalBuffer = nullptr;
+    unsigned int m_internalBufferLength = 0;
+    unsigned char* m_externalBuffer = nullptr;
+    unsigned char* m_workingBuffer = nullptr;
 
-    mutable unsigned char* mService_finalBytes;
-    mutable unsigned int mService_finalBytesCount;
-    mutable uint64_t mService_val;
-    mutable unsigned char* mService_ptrToFirstCopyableMostSignificantByte;
-    mutable unsigned char mService_rawBytes[65];
-    mutable fields_metadata_t::const_iterator mService_fieldMetadataItt;
+    mutable unsigned char* m_prealloc_finalBytes = nullptr;
+    mutable unsigned int m_prealloc_finalBytesCount = 0;
+    mutable uint64_t m_prealloc_val = 0;
+    mutable unsigned char* m_prealloc_ptrToFirstCopyableMostSignificantByte = nullptr;
+    mutable unsigned char m_prealloc_rawBytes[65];
+    mutable fields_metadata_t::const_iterator m_prealloc_fieldMetadataItt;
 
 private:
     fields_t m_fields;
