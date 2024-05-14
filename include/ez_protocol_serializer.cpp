@@ -554,9 +554,9 @@ void protocol_serializer::reallocateInternalBuffer()
     if (m_fields.empty())
         return;
 
-    const field_metadata& lastField = m_fieldsMetadata.find(m_fields.back())->second;
+    const field_metadata& lastFieldMetadata = m_fieldsMetadata.find(m_fields.back())->second;
 
-    unsigned int bits = lastField.firstBitInd + lastField.bitCount;
+    unsigned int bits = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
     m_internalBufferLength = bits / 8 + ((bits % 8) ? 1 : 0);
     m_internalBuffer = new unsigned char[m_internalBufferLength];
     memset(m_internalBuffer, 0, m_internalBufferLength);
