@@ -7,6 +7,7 @@
 #include <string>
 #include <cstring>
 #include <type_traits>
+#include <unordered_map>
 
 namespace ez {
 
@@ -42,6 +43,25 @@ public:
         ASSOCIATED_TYPE associatedType = ASSOCIATED_TYPE::UNSIGNED_INTEGER;
     };
 
+    struct field_metadata
+    {
+        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const ASSOCIATED_TYPE associatedType = ASSOCIATED_TYPE::SIGNED_INTEGER);
+        unsigned int firstByteInd;
+        unsigned int bytesCount;
+        unsigned int touchedBytesCount;
+        unsigned int firstBitInd;
+        unsigned int bitCount;
+        unsigned char leftSpacing;
+        unsigned char rightSpacing;
+        unsigned char firstMask;
+        unsigned char lastMask;
+        std::string name;
+        ASSOCIATED_TYPE associatedType;
+    };
+
+    using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
+    using fields_t = std::list<std::string>;
+
     protocol_serializer(const P_BYTE_ORDER byteOrder = P_BYTE_ORDER::P_BIG_ENDIAN,
                         const BUFFER_SOURCE bufferSource = BUFFER_SOURCE::INTERNAL_BUFFER,
                         unsigned char* const externalBuffer = nullptr);
@@ -74,31 +94,7 @@ public:
 
     unsigned char* getWorkingBuffer() const;
 
-    using NameToIndMap = std::map<const std::string, const unsigned int>;
-    NameToIndMap getFields() const;
-
-    struct field_metadata {
-        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string &name, const ASSOCIATED_TYPE associatedType = ASSOCIATED_TYPE::SIGNED_INTEGER);
-        unsigned int firstByteInd;
-        unsigned int bytesCount;
-        unsigned int touchedBytesCount;
-        unsigned int firstBitInd;
-        unsigned int bitCount;
-        unsigned char leftSpacing;
-        unsigned char rightSpacing;
-        unsigned char firstMask;
-        unsigned char lastMask;
-        std::string name;
-        ASSOCIATED_TYPE associatedType;
-    };
-
-    using NameToIndItt = std::map<const std::string, const unsigned int>::const_iterator;
-    using IndToFieldItt = std::map<const unsigned int, const field_metadata>::const_iterator;
-
-    using IndToFieldMap = std::map<const unsigned int, const field_metadata>;
-
-    const std::map<const std::string, const unsigned int>& getNameToIndMap() const;
-    const std::map<const unsigned int, const field_metadata>& getIndToFieldMap() const;
+    fields_t getFields() const;
 
     std::string getVisualization(bool drawHeader = true, int firstLineNum = 1, unsigned int horizontalBitMargin = 3, unsigned int nameLinesCount = 2, bool printValues = false) const;
     std::string getDataVisualization(int firstLineNumber = 1, unsigned int bytesPerLine = 2, BASE base = BASE::HEX, bool spacesBetweenBytes = true);
@@ -115,13 +111,14 @@ public:
     template<class T>
     void setFieldValue(const std::string& fieldName, const T& value, std::string* errorString = nullptr)
     {
-        mService_fieldItt = getFieldByNameItt(fieldName);
-        if(mService_fieldItt == m_indToFieldMap.cend()) {
-            if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. There is no field '%s'!\n", fieldName.c_str());
+        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        {
+            if(errorString != nullptr)
+                *errorString = getStringFromFormat("Protocol::setFieldValue. There is no field '%s'!\n", fieldName.c_str());
             return;
         }
-        const field_metadata& field = mService_fieldItt->second;
-        _setFieldValue(field, value, errorString);
+        _setFieldValue(mService_fieldMetadataItt->second, value, errorString);
     }
 
     template<class T>
@@ -134,16 +131,18 @@ public:
     template<class T, size_t N>
     void setFieldValueAsArray(const std::string& fieldName, const T array[N], std::string* errorString = nullptr)
     {
-        IndToFieldItt fieldItt = getFieldByNameItt(fieldName);
-        if(fieldItt == m_indToFieldMap.cend()) {
-            if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValueAsArray.There is no field '%s'!\n", fieldName.c_str());
+        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        {
+            if(errorString != nullptr)
+                *errorString = getStringFromFormat("Protocol::setFieldValueAsArray.There is no field '%s'!\n", fieldName.c_str());
             return;
         }
-        const field_metadata& field = fieldItt->second;
 
+        const field_metadata& field = mService_fieldMetadataItt->second;
         if(field.bitCount % N) {
             if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
-                    fieldName.c_str(), field.bitCount, N);
+                fieldName.c_str(), field.bitCount, N);
             return;
         }
 
@@ -185,14 +184,14 @@ public:
     template<class T>
     T readFieldValue(const std::string &fieldName, std::string* errorString = nullptr) const
     {
-        IndToFieldItt m_fieldItt = getFieldByNameItt(fieldName);
-        if(m_fieldItt == m_indToFieldMap.cend()) {
-            if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. There is no field '%s'!\n", fieldName.c_str());
+        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        {
+            if(errorString != nullptr)
+                *errorString = getStringFromFormat("Protocol::readFieldValue. There is no field '%s'!\n", fieldName.c_str());
             return T{};
         }
-        const field_metadata& field = m_fieldItt->second;
-
-        return _readFieldValue<T>(field, errorString);
+        return _readFieldValue<T>(mService_fieldMetadataItt->second, errorString);
     }
 
     template<class T>
@@ -204,16 +203,18 @@ public:
     template<class T, size_t N>
     void readFieldValueAsArray(const std::string &fieldName, T array[N], std::string* errorString = nullptr) const
     {
-        IndToFieldItt fieldItt = getFieldByNameItt(fieldName);
-        if(fieldItt == m_indToFieldMap.cend()) {
-            if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. There is no field '%s'!\n", fieldName.c_str());
+        mService_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        if(mService_fieldMetadataItt == m_fieldsMetadata.cend())
+        {
+            if(errorString != nullptr)
+                *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. There is no field '%s'!\n", fieldName.c_str());
             return;
         }
-        const field_metadata& field = fieldItt->second;
 
+        const field_metadata& field = mService_fieldMetadataItt->second;
         if(field.bitCount % N) {
             if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
-                    fieldName.c_str(), field.bitCount, N);
+                fieldName.c_str(), field.bitCount, N);
             return;
         }
 
@@ -234,8 +235,8 @@ public:
     void readGhostFieldValueAsArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, T array[N], std::string* errorString = nullptr)
     {
         if(fieldBitCount % N) {
-            if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!",
-                    fieldBitCount, N);
+            if(errorString != nullptr)
+                *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!", fieldBitCount, N);
             return;
         }
 
@@ -404,7 +405,6 @@ private:
     static void shiftRight(unsigned char* buf, int len, unsigned char shift);
 
     P_BYTE_ORDER m_protocolByteOrder;
-
     BUFFER_SOURCE m_bufferSource;
 
     static const P_BYTE_ORDER& getMachineByteOrder();
@@ -414,7 +414,6 @@ private:
 
     void reallocateInternalBuffer();
     void updateInternalBuffer();
-    IndToFieldItt getFieldByNameItt(const std::string& name) const;
 
     template<typename... Args>
     static std::string getStringFromFormat(const std::string& format, Args... args)
@@ -433,17 +432,14 @@ private:
 
     mutable unsigned char* mService_finalBytes;
     mutable unsigned int mService_finalBytesCount;
-    mutable IndToFieldItt mService_fieldItt;
     mutable uint64_t mService_val;
     mutable unsigned char* mService_ptrToFirstCopyableMostSignificantByte;
     mutable unsigned char mService_rawBytes[65];
-
-    NameToIndMap m_nameToIndMap;
-    using NameToIndPair = std::pair<const std::string, const unsigned int>;
+    mutable fields_metadata_t::const_iterator mService_fieldMetadataItt;
 
 private:
-    IndToFieldMap m_indToFieldMap;
-    using IndToFieldPair = std::pair<const unsigned int, const field_metadata>;
+    fields_t m_fields;
+    fields_metadata_t m_fieldsMetadata;
 };
 
 }
