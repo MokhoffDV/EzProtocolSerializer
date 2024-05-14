@@ -2,8 +2,8 @@
 
 using ez::protocol_serializer;
 
-protocol_serializer::protocol_serializer(const protocol_serializer::P_BYTE_ORDER byteOrder, const protocol_serializer::BUFFER_SOURCE bufferSource, unsigned char* const externalBuffer)
-    : m_protocolByteOrder(byteOrder)
+protocol_serializer::protocol_serializer(const bool isLittleEndian, const protocol_serializer::BUFFER_SOURCE bufferSource, unsigned char* const externalBuffer)
+    : m_isLittleEndian(isLittleEndian)
     , m_bufferSource(bufferSource)
 {
     if (bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER)
@@ -15,8 +15,8 @@ protocol_serializer::protocol_serializer(const protocol_serializer::P_BYTE_ORDER
     }
 }
 
-protocol_serializer::protocol_serializer(const std::vector<field>& fields, const P_BYTE_ORDER byteOrder, const BUFFER_SOURCE bufferSource, unsigned char* const externalBuffer)
-    : protocol_serializer(byteOrder, bufferSource, externalBuffer)
+protocol_serializer::protocol_serializer(const std::vector<field>& fields, const bool isLittleEndian, const BUFFER_SOURCE bufferSource, unsigned char* const externalBuffer)
+    : protocol_serializer(isLittleEndian, bufferSource, externalBuffer)
 {
     bool error = false;
     for (const field& field : fields)
@@ -47,7 +47,7 @@ void ez::protocol_serializer::copyFrom(const protocol_serializer& other)
 
     m_fields = other.m_fields;
     m_fieldsMetadata = other.m_fieldsMetadata;
-    m_protocolByteOrder = other.m_protocolByteOrder;
+    m_isLittleEndian = other.m_isLittleEndian;
     m_bufferSource = other.m_bufferSource;
     m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer : m_externalBuffer;
 }
@@ -79,7 +79,7 @@ void ez::protocol_serializer::moveFrom(protocol_serializer&& other)
 
     m_fields = std::move(other.m_fields);
     m_fieldsMetadata = std::move(other.m_fieldsMetadata);
-    m_protocolByteOrder = other.m_protocolByteOrder;
+    m_isLittleEndian = other.m_isLittleEndian;
     m_bufferSource = other.m_bufferSource;
     m_workingBuffer = other.m_workingBuffer;
 }
@@ -107,14 +107,14 @@ protocol_serializer::~protocol_serializer()
 }
 
 
-void protocol_serializer::setByteOrder(const protocol_serializer::P_BYTE_ORDER byteOrder)
+void protocol_serializer::setIsLittleEndian(const bool isLittleEndian)
 {
-    m_protocolByteOrder = byteOrder;
+    m_isLittleEndian = isLittleEndian;
 }
 
-protocol_serializer::P_BYTE_ORDER protocol_serializer::getByteOrder() const
+bool protocol_serializer::getIsLittleEndian() const
 {
-    return m_protocolByteOrder;
+    return m_isLittleEndian;
 }
 
 void protocol_serializer::setBufferSource(const protocol_serializer::BUFFER_SOURCE bufferSource)
@@ -210,7 +210,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     if (drawHeader)
     {
         if (firstLineNum >= 0) result = "|_____";
-        if (m_protocolByteOrder == P_BYTE_ORDER::P_BIG_ENDIAN)
+        if (!m_isLittleEndian)
             result += mostSignificantHeader + lessSignificantHeader + "|\n";
         else
             result += lessSignificantHeader + mostSignificantHeader + "|\n";
@@ -446,10 +446,10 @@ void protocol_serializer::removeLastField()
 
 void protocol_serializer::removeAllFields()
 {
-    m_fields.clear(); reallocateInternalBuffer();
+    m_fields.clear(); m_fieldsMetadata.clear(); reallocateInternalBuffer();
 }
 
-void protocol_serializer::clearAllValues()
+void protocol_serializer::clearWorkingBuffer()
 {
     if (m_fields.empty())
         return;
@@ -478,13 +478,10 @@ void protocol_serializer::shiftRight(unsigned char* buf, int len, unsigned char 
     }
 }
 
-const protocol_serializer::P_BYTE_ORDER& protocol_serializer::getMachineByteOrder()
+constexpr bool protocol_serializer::getIsMachineLittleEndian()
 {
-    uint16_t word = 0x1;
-    uint8_t bytes[2];
-    std::memcpy(bytes, &word, sizeof(uint16_t));
-    static const P_BYTE_ORDER machineByteOrder = bytes[0] ? P_BYTE_ORDER::P_LITTLE_ENDIAN : P_BYTE_ORDER::P_LITTLE_ENDIAN;
-    return machineByteOrder;
+    constexpr uint16_t value = 0x1234;
+    return static_cast<uint8_t>(value) == 0x34;
 }
 
 const std::map<unsigned char, unsigned char>& protocol_serializer::getRightMasks()

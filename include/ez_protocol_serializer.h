@@ -14,11 +14,6 @@ namespace ez {
 class protocol_serializer
 {
 public:
-    enum class P_BYTE_ORDER {
-        P_BIG_ENDIAN,
-        P_LITTLE_ENDIAN
-    };
-
     enum class BUFFER_SOURCE {
         INTERNAL_BUFFER,
         EXTERNAL_BUFFER
@@ -59,15 +54,15 @@ public:
         ASSOCIATED_TYPE associatedType;
     };
 
-    using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
     using fields_t = std::list<std::string>;
+    using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
 
-    protocol_serializer(const P_BYTE_ORDER byteOrder = P_BYTE_ORDER::P_BIG_ENDIAN,
+    protocol_serializer(const bool isLittleEndian = false,
                         const BUFFER_SOURCE bufferSource = BUFFER_SOURCE::INTERNAL_BUFFER,
                         unsigned char* const externalBuffer = nullptr);
 
     protocol_serializer(const std::vector<field>& fields,
-                        const P_BYTE_ORDER byteOrder = P_BYTE_ORDER::P_BIG_ENDIAN,
+                        const bool isLittleEndian = false,
                         const BUFFER_SOURCE bufferSource = BUFFER_SOURCE::INTERNAL_BUFFER,
                         unsigned char* const externalBuffer = nullptr);
 
@@ -79,8 +74,8 @@ public:
 
     virtual ~protocol_serializer();
 
-    void setByteOrder(const P_BYTE_ORDER byteOrder);
-    P_BYTE_ORDER getByteOrder() const;
+    void setIsLittleEndian(const bool isLittleEndian);
+    bool getIsLittleEndian() const;
 
     void setBufferSource(const BUFFER_SOURCE bufferSource);
     BUFFER_SOURCE getBufferSource() const;
@@ -106,7 +101,7 @@ public:
 
     void removeLastField();
     void removeAllFields();
-    void clearAllValues();
+    void clearWorkingBuffer();
 
     template<class T>
     void setFieldValue(const std::string& fieldName, const T& value, std::string* errorString = nullptr)
@@ -262,7 +257,7 @@ private:
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::setFieldValue. T should be arithmetic!");
 
-        if(m_protocolByteOrder == P_BYTE_ORDER::P_LITTLE_ENDIAN && field.bitCount > 8 && field.bitCount%8) {
+        if(m_isLittleEndian && field.bitCount > 8 && field.bitCount%8) {
             if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", field.name.c_str(), field.bitCount);
             return;
         }
@@ -286,11 +281,11 @@ private:
         if(std::is_integral<T>::value) {
             m_prealloc_val = value;
             m_prealloc_ptrToFirstCopyableMostSignificantByte = (unsigned char*)&m_prealloc_val;
-            if(getMachineByteOrder() == P_BYTE_ORDER::P_BIG_ENDIAN) {
+            if(!getIsMachineLittleEndian()) {
                 m_prealloc_ptrToFirstCopyableMostSignificantByte += sizeof(uint64_t) - field.bytesCount;
             }
             memcpy(m_prealloc_rawBytes, m_prealloc_ptrToFirstCopyableMostSignificantByte, field.bytesCount);
-            if(getMachineByteOrder() != m_protocolByteOrder)
+            if(getIsMachineLittleEndian() != m_isLittleEndian)
                 for(uint32_t i = 0; i < field.bytesCount/2; ++i)
                     std::swap(m_prealloc_rawBytes[i], m_prealloc_rawBytes[field.bytesCount-1-i]);
         } else if(std::is_floating_point<T>::value) {
@@ -329,7 +324,7 @@ private:
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::readFieldValue. T should be arithmetic!");
 
-        if(m_protocolByteOrder == P_BYTE_ORDER::P_LITTLE_ENDIAN && field.bitCount > 8 && field.bitCount%8) {
+        if(m_isLittleEndian && field.bitCount > 8 && field.bitCount%8) {
             if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", field.name.c_str(), field.bitCount);
             return T{};
         }
@@ -374,19 +369,19 @@ private:
                 return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_finalBytes));
         }
 
-        if(getMachineByteOrder() != m_protocolByteOrder)
+        if(getIsMachineLittleEndian() != m_isLittleEndian)
             for(uint32_t i = 0; i < field.bytesCount/2; ++i)
                 std::swap(m_prealloc_finalBytes[i], m_prealloc_finalBytes[field.bytesCount-i-1]);
 
         if(field.bytesCount > sizeof(T)) {
-            if(getMachineByteOrder() == P_BYTE_ORDER::P_BIG_ENDIAN) {
+            if(!getIsMachineLittleEndian()) {
                 m_prealloc_finalBytes += field.bytesCount - sizeof(T);
                 m_prealloc_finalBytesCount -= field.bytesCount - sizeof(T);
             }
         }
 
         if(std::is_signed_v<T>) {
-            if(getMachineByteOrder() == P_BYTE_ORDER::P_BIG_ENDIAN) {
+            if(!getIsMachineLittleEndian()) {
                 if(m_prealloc_finalBytes[0] & (1 << (7 - (field.leftSpacing + field.rightSpacing)%8)))
                     return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount*8, field.bitCount)));
             } else {
@@ -407,10 +402,10 @@ private:
     static void shiftLeft(unsigned char* buf, int len, unsigned char shift);
     static void shiftRight(unsigned char* buf, int len, unsigned char shift);
 
-    P_BYTE_ORDER m_protocolByteOrder;
+    bool m_isLittleEndian;
     BUFFER_SOURCE m_bufferSource;
 
-    static const P_BYTE_ORDER& getMachineByteOrder();
+    static constexpr bool getIsMachineLittleEndian();
     static const std::map<unsigned char, unsigned char>& getRightMasks();
     static const std::map<unsigned char, unsigned char>& getLeftMasks();
     static const unsigned char** getHalfByteBinary();
