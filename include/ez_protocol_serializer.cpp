@@ -409,8 +409,18 @@ bool protocol_serializer::appendField(const field& field)
     if (field.bitCount == 0)
         return false;
 
+    if (field.name.empty())
+        return false;
+    
+    unsigned int firstBitIndex = 0;
+    if (!m_fields.empty())
+    {
+        const field_metadata lastFieldMetadata = m_fieldsMetadata.at(m_fields.back());
+        firstBitIndex = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
+    }
+
     m_fields.push_back(field.name);
-    m_fieldsMetadata.insert(fields_metadata_t::value_type(field.name, field_metadata(0, field.bitCount, field.name, field.associatedType)));
+    m_fieldsMetadata.insert(fields_metadata_t::value_type(field.name, field_metadata(firstBitIndex, field.bitCount, field.name, field.associatedType)));
     updateInternalBuffer();
 
     return true;
