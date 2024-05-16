@@ -222,9 +222,9 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     int currBitIndInsideBuffer = 0;
     for (const std::string& fieldName : m_fields)
     {
-        const field_metadata& field = m_fieldsMetadata.find(fieldName)->second;
-        unsigned int availableNameLength = field.bitCount * bitTextLen - 1;
-        std::string name = field.name;
+        const field_metadata& fieldMetadata = m_fieldsMetadata.find(fieldName)->second;
+        unsigned int availableNameLength = fieldMetadata.bitCount * bitTextLen - 1;
+        std::string name = fieldMetadata.name;
         std::vector<std::string> nameLinesForField(nameLinesCount);
 
         for (uint32_t i = 0; i < nameLinesCount; ++i)
@@ -242,24 +242,24 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
         if (printValues)
         {
             std::string valueLine;
-            if (field.associatedType == ASSOCIATED_TYPE::FLOATING_POINT && (field.bitCount == 32 || field.bitCount == 64))
+            if (fieldMetadata.associatedType == ASSOCIATED_TYPE::FLOATING_POINT && (fieldMetadata.bitCount == 32 || fieldMetadata.bitCount == 64))
             {
-                if (field.bitCount == 32) valueLine = "=" + std::to_string(readFieldValue<float>(field.name));
-                else if (field.bitCount == 64) valueLine = "=" + std::to_string(readFieldValue<double>(field.name));
+                if (fieldMetadata.bitCount == 32) valueLine = "=" + std::to_string(readFieldValue<float>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount == 64) valueLine = "=" + std::to_string(readFieldValue<double>(fieldMetadata.name));
             }
-            else if (field.associatedType == ASSOCIATED_TYPE::SIGNED_INTEGER)
+            else if (fieldMetadata.associatedType == ASSOCIATED_TYPE::SIGNED_INTEGER)
             {
-                if (field.bitCount <= 8)  valueLine = "=" + std::to_string(readFieldValue<int8_t>(field.name));
-                else if (field.bitCount <= 16) valueLine = "=" + std::to_string(readFieldValue<int16_t>(field.name));
-                else if (field.bitCount <= 32) valueLine = "=" + std::to_string(readFieldValue<int32_t>(field.name));
-                else if (field.bitCount <= 64) valueLine = "=" + std::to_string(readFieldValue<int64_t>(field.name));
+                if (fieldMetadata.bitCount <= 8)  valueLine = "=" + std::to_string(readFieldValue<int8_t>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount <= 16) valueLine = "=" + std::to_string(readFieldValue<int16_t>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount <= 32) valueLine = "=" + std::to_string(readFieldValue<int32_t>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount <= 64) valueLine = "=" + std::to_string(readFieldValue<int64_t>(fieldMetadata.name));
             }
             else
             {
-                if (field.bitCount <= 8)  valueLine = "=" + std::to_string(readFieldValue<uint8_t>(field.name));
-                else if (field.bitCount <= 16) valueLine = "=" + std::to_string(readFieldValue<uint16_t>(field.name));
-                else if (field.bitCount <= 32) valueLine = "=" + std::to_string(readFieldValue<uint32_t>(field.name));
-                else if (field.bitCount <= 64) valueLine = "=" + std::to_string(readFieldValue<uint64_t>(field.name));
+                if (fieldMetadata.bitCount <= 8)  valueLine = "=" + std::to_string(readFieldValue<uint8_t>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount <= 16) valueLine = "=" + std::to_string(readFieldValue<uint16_t>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount <= 32) valueLine = "=" + std::to_string(readFieldValue<uint32_t>(fieldMetadata.name));
+                else if (fieldMetadata.bitCount <= 64) valueLine = "=" + std::to_string(readFieldValue<uint64_t>(fieldMetadata.name));
             }
 
             valueLine = valueLine.substr(0, availableNameLength);
