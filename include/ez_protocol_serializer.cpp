@@ -488,12 +488,6 @@ void protocol_serializer::shiftRight(unsigned char* buf, int len, unsigned char 
     }
 }
 
-constexpr bool protocol_serializer::getIsMachineLittleEndian()
-{
-    constexpr uint16_t value = 0x1234;
-    return static_cast<uint8_t>(value) == 0x34;
-}
-
 const std::map<unsigned char, unsigned char>& protocol_serializer::getRightMasks()
 {
     static const std::map<unsigned char, unsigned char> rightMasks{

@@ -405,7 +405,12 @@ private:
     bool m_isLittleEndian;
     BUFFER_SOURCE m_bufferSource;
 
-    static constexpr bool getIsMachineLittleEndian();
+    static constexpr bool getIsMachineLittleEndian()
+    {
+        constexpr uint16_t value = 0x1234;
+        return static_cast<uint8_t>(value) == 0x34;
+    }
+
     static const std::map<unsigned char, unsigned char>& getRightMasks();
     static const std::map<unsigned char, unsigned char>& getLeftMasks();
     static const unsigned char** getHalfByteBinary();
