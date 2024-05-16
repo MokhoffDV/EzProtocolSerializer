@@ -263,9 +263,14 @@ private:
             return;
         }
 
-        if(std::is_floating_point<T>::value && field.bitCount != 32 && field.bitCount != 64) {
-            if(errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", field.name.c_str(), field.bitCount);
-            return;
+        if (std::is_floating_point<T>::value)
+        {
+            if (field.bitCount != 32 && field.bitCount != 64)
+            {
+                if (errorString != nullptr)
+                    *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", field.name.c_str(), field.bitCount);
+                return;
+            }
         }
 
         if(m_workingBuffer == nullptr) {
