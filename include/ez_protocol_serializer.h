@@ -90,6 +90,7 @@ public:
     unsigned char* getWorkingBuffer() const;
 
     fields_t getFields() const;
+    field_metadata getFieldMetadata(const std::string& name) const;
 
     std::string getVisualization(bool drawHeader = true, int firstLineNum = 1, unsigned int horizontalBitMargin = 3, unsigned int nameLinesCount = 2, bool printValues = false) const;
     std::string getDataVisualization(int firstLineNumber = 1, unsigned int bytesPerLine = 2, BASE base = BASE::HEX, bool spacesBetweenBytes = true);

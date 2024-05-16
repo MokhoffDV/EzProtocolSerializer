@@ -174,6 +174,15 @@ protocol_serializer::fields_t protocol_serializer::getFields() const
     return m_fields;
 }
 
+ez::protocol_serializer::field_metadata ez::protocol_serializer::getFieldMetadata(const std::string& name) const
+{
+    const fields_metadata_t::const_iterator itt = m_fieldsMetadata.find(name);
+    if (itt == m_fieldsMetadata.cend())
+        return field_metadata(0,0,"");
+
+    return itt->second;
+}
+
 std::string protocol_serializer::getVisualization(bool drawHeader, int firstLineNum, unsigned int horizontalBitMargin, unsigned int nameLinesCount, bool printValues) const
 {
     if (horizontalBitMargin <= 0) horizontalBitMargin = 1;
