@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,1">
+   <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,2,3">
     <item>
      <widget class="QGroupBox" name="groupBox">
       <property name="font">
@@ -84,17 +84,7 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <spacer name="horizontalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>596</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
+        <widget class="EditorWidget" name="editorWidget" native="true"/>
        </item>
       </layout>
      </widget>
@@ -141,6 +131,12 @@
    <class>CreatorWidget</class>
    <extends>QWidget</extends>
    <header>creator_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>EditorWidget</class>
+   <extends>QWidget</extends>
+   <header>editor_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -37,12 +37,17 @@ set(CMAKE_AUTOUIC ON)
 set(EZ_SOURCES 	"${EZ_SOURCES_DIR}/main.cpp"
 				"${EZ_SOURCES_DIR}/main_window.cpp"
 				"${EZ_SOURCES_DIR}/creator_widget.cpp"
+				"${EZ_SOURCES_DIR}/editor_widget.cpp"
+				"${EZ_SOURCES_DIR}/validators.cpp"
 				"${EZ_INCLUDE_DIR}/ez_protocol_serializer.cpp")
 set(EZ_HEADERS 	"${EZ_SOURCES_DIR}/main_window.h"
 				"${EZ_SOURCES_DIR}/creator_widget.h"
+				"${EZ_SOURCES_DIR}/editor_widget.h"
 				"${EZ_INCLUDE_DIR}/ez_protocol_serializer.h")
 set(EZ_MOC_SOURCES 	"${EZ_SOURCES_DIR}/main_window.h"
-					"${EZ_SOURCES_DIR}/creator_widget.h")
+					"${EZ_SOURCES_DIR}/creator_widget.h"
+					"${EZ_SOURCES_DIR}/editor_widget.h"
+					"${EZ_SOURCES_DIR}/validators.h")
 set(EZ_UIC_SOURCES 	"${EZ_SOURCES_DIR}/main_window.ui")
 source_group("Source Files" FILES ${EZ_SOURCES})
 source_group("Header Files" FILES ${EZ_HEADERS})
