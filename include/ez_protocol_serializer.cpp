@@ -121,13 +121,9 @@ void protocol_serializer::setBufferSource(const protocol_serializer::BUFFER_SOUR
 {
     m_bufferSource = bufferSource;
     if (bufferSource == protocol_serializer::BUFFER_SOURCE::INTERNAL_BUFFER)
-    {
         m_workingBuffer = m_internalBuffer;
-    }
     else
-    {
         m_workingBuffer = m_externalBuffer;
-    }
 }
 
 protocol_serializer::BUFFER_SOURCE protocol_serializer::getBufferSource() const
@@ -154,9 +150,7 @@ void protocol_serializer::setExternalBuffer(unsigned char* const externalBuffer)
 {
     m_externalBuffer = externalBuffer;
     if (m_bufferSource == BUFFER_SOURCE::EXTERNAL_BUFFER)
-    {
         m_workingBuffer = m_externalBuffer;
-    }
 }
 
 void protocol_serializer::setInternalBufferValues(unsigned char* const bufferToCopy)
@@ -204,7 +198,6 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     }
 
     std::string result;
-
     std::string lessSignificantHeader;
     std::string mostSignificantHeader;
     for (int i = 15; i >= 0; i--)
@@ -218,7 +211,8 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
 
     if (drawHeader)
     {
-        if (firstLineNum >= 0) result = "|_____";
+        if (firstLineNum >= 0)
+            result = "|_____";
         if (!m_isLittleEndian)
             result += mostSignificantHeader + lessSignificantHeader + "|\n";
         else
@@ -280,9 +274,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
         for (uint32_t j = 0; j < availableNameLength; ++j)
         {
             if (j >= horizontalBitMargin && ((j - horizontalBitMargin) % bitTextLen) == 0)
-            {
                 bottomLineText += std::to_string((int)bits[currBitIndInsideBuffer++]);
-            }
             else if ((j + 1) % bitTextLen)
                 bottomLineText += "_";
             else
@@ -296,7 +288,8 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     unsigned int currentLineNum = 0;
     while (true)
     {
-        if (nameLines.at(0).length() == 0) break;
+        if (nameLines.at(0).length() == 0)
+            break;
         int num = firstLineNum + currentLineNum++;
         wordNumStr = (num < 100 ? std::string("0") : "") + (num < 10 ? "0" : "") + std::to_string(num);
 
@@ -334,9 +327,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
                     result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + nameLines.at(i) + "\n";
             }
             if (printValues)
-            {
                 result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, bitTextLen * 16) + "\n";
-            }
             result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bottomLine.substr(0, bitTextLen * 16) + "\n";
             break;
         }
@@ -347,7 +338,8 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
 
 std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsigned int bytesPerLine, BASE base, bool spacesBetweenBytes)
 {
-    if (m_fields.empty()) return "Protocol::getDataVisualization(). Protocol is empty";
+    if (m_fields.empty())
+        return "Protocol::getDataVisualization(). Protocol is empty";
 
     if (bytesPerLine == 0)
         bytesPerLine = 1;
@@ -366,11 +358,10 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
         {
             itIsFirstByteInLine = true;
             if (currentLineText.length())
-            {
                 result += (i == 0 ? "" : "\n") + currentLineText;
-            }
 
-            if (i == m_internalBufferLength) break;
+            if (i == m_internalBufferLength)
+                break;
 
             currentBytesOnLine = 0;
 
@@ -438,10 +429,8 @@ bool protocol_serializer::appendField(const field& field)
 bool protocol_serializer::appendProtocol(const protocol_serializer& other)
 {
     for (fields_metadata_t::const_iterator itt = other.m_fieldsMetadata.cbegin(); itt != other.m_fieldsMetadata.cend(); ++itt)
-    {
         if (m_fieldsMetadata.find(itt->first) != m_fieldsMetadata.cend())
             return false;
-    }
 
     for (const std::string& fieldName : other.m_fields)
     {
