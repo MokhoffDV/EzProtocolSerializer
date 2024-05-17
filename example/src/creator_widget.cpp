@@ -22,6 +22,15 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     {
         if (m_ps == nullptr)
             return;
+        
+        // Remember previous working buffer state to restore if needed
+        const unsigned int prevWorkingBufferLength = m_ps->getInternalBufferLength();
+        std::unique_ptr<unsigned char*> prevWorkingBufferCopy = nullptr;
+        if (prevWorkingBufferLength > 0)
+        {
+            prevWorkingBufferCopy = std::make_unique<unsigned char*>(new unsigned char[prevWorkingBufferLength]);
+            memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->getWorkingBuffer(), prevWorkingBufferLength);
+        }
         m_ps->removeAllFields();
         m_ps->clearWorkingBuffer();
 
@@ -44,6 +53,17 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
         {
             m_ps->removeAllFields();
             m_ps->clearWorkingBuffer();
+        }
+
+        // Check new length
+        if (prevWorkingBufferLength > 0)
+        {
+            const unsigned int newWorkingBufferLength = m_ps->getInternalBufferLength();
+            if (newWorkingBufferLength > 0)
+            {
+                const unsigned int commonLength = std::min(prevWorkingBufferLength, newWorkingBufferLength);
+                memcpy_s(m_ps->getWorkingBuffer(), commonLength, prevWorkingBufferCopy.get(), commonLength);
+            }
         }
 
         emit protocolSerializerChanged();
