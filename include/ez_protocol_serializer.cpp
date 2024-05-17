@@ -368,15 +368,16 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
             currentLineText = (firstLineNumber >= 0) ? (std::to_string(firstLineNumber + currentLineNumber++) + ": ") : "";
         }
 
-        char byteTextValue[32]; byteTextValue[0] = 0;
+        char byteTextValue[32];
+        memset(byteTextValue, 0, sizeof(byteTextValue));
         if (base == BASE::HEX)
             sprintf_s(byteTextValue, "%x", workingBuffer[i]);
-        if (base == BASE::DEC)
+        else if (base == BASE::DEC)
             sprintf_s(byteTextValue, "%d", workingBuffer[i]);
-        if (base == BASE::OCT)
+        else if (base == BASE::OCT)
             sprintf_s(byteTextValue, "%o", workingBuffer[i]);
-        if (base == BASE::BIN)
-            sprintf_s(byteTextValue, "%s%s", getHalfByteBinary()[workingBuffer[i] >> 4], getHalfByteBinary()[workingBuffer[i] & 0x0F]);
+        else if (base == BASE::BIN)
+            sprintf_s(byteTextValue, "%s%s", getHalfByteBinary()[workingBuffer[i] >> 4].c_str(), getHalfByteBinary()[workingBuffer[i] & 0x0F].c_str());
 
         currentLineText += (spacesBetweenBytes ? (itIsFirstByteInLine ? "" : " ") : "") + std::string(byteTextValue);
 
@@ -516,12 +517,13 @@ const std::map<unsigned char, unsigned char>& protocol_serializer::getLeftMasks(
     return leftMasks;
 }
 
-const unsigned char** protocol_serializer::getHalfByteBinary()
+const std::vector<std::string>& protocol_serializer::getHalfByteBinary()
 {
-    static const unsigned char halfByteBinary[16][5] = {
-     "0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111", "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"
+    static const std::vector<std::string> halfByteBinary = {
+        "0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111",
+        "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"
     };
-    return (const unsigned char**)(halfByteBinary);
+    return halfByteBinary;
 }
 
 void protocol_serializer::shiftLeft(unsigned char* buf, int len, unsigned char shift)

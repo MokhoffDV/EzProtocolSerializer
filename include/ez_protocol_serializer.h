@@ -20,10 +20,10 @@ public:
     };
 
     enum class BASE {
-        HEX,
-        DEC,
+        BIN,
         OCT,
-        BIN
+        DEC,
+        HEX
     };
 
     enum class ASSOCIATED_TYPE {
@@ -419,7 +419,7 @@ private:
 
     static const std::map<unsigned char, unsigned char>& getRightMasks();
     static const std::map<unsigned char, unsigned char>& getLeftMasks();
-    static const unsigned char** getHalfByteBinary();
+    static const std::vector<std::string>& getHalfByteBinary();
 
     void reallocateInternalBuffer();
     void updateInternalBuffer();
