@@ -33,6 +33,8 @@ protocol_serializer::protocol_serializer(const std::vector<field>& fields, const
 
 void ez::protocol_serializer::copyFrom(const protocol_serializer& other)
 {
+    if (m_internalBuffer != nullptr)
+        delete[] m_internalBuffer;
     m_internalBuffer = nullptr;
     m_internalBufferLength = other.m_internalBufferLength;
 
@@ -59,16 +61,14 @@ protocol_serializer::protocol_serializer(const protocol_serializer& other)
 
 protocol_serializer& protocol_serializer::operator=(const protocol_serializer& other)
 {
-    if (m_internalBuffer != nullptr)
-        delete[] m_internalBuffer;
-    m_internalBuffer = nullptr;
-
     copyFrom(other);
     return *this;
 }
 
 void ez::protocol_serializer::moveFrom(protocol_serializer&& other)
 {
+    if (m_internalBuffer != nullptr)
+        delete[] m_internalBuffer;
     m_internalBuffer = nullptr;
 
     m_internalBufferLength = other.m_internalBufferLength;
@@ -91,10 +91,6 @@ protocol_serializer::protocol_serializer(protocol_serializer&& other) noexcept
 
 protocol_serializer& protocol_serializer::operator=(protocol_serializer&& other) noexcept
 {
-    if (m_internalBuffer != nullptr)
-        delete[] m_internalBuffer;
-    m_internalBuffer = nullptr;
-
     moveFrom(std::move(other));
     return *this;
 }
