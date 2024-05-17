@@ -9,7 +9,7 @@ MainWindow::MainWindow(QWidget* parent /* = nullptr */)
     m_ui->dataVisualizationEdit->setWordWrapMode(QTextOption::WrapMode::NoWrap);
     m_ui->visualizationEdit->setWordWrapMode(QTextOption::WrapMode::NoWrap);
 
-    connect(m_ui->creatorWidget, &FieldCreatorWidget::protocolSerializerChanged, this, [this]()
+    connect(m_ui->creatorWidget, &CreatorWidget::protocolSerializerChanged, this, [this]()
     {
         m_ui->visualizationEdit->clear();
         m_ui->dataVisualizationEdit->clear();

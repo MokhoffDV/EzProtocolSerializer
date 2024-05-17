@@ -9,11 +9,11 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
-class FieldCreatorWidgetItem : public QWidget
+class CreatorFieldWidget : public QWidget
 {
     Q_OBJECT
 public:
-    FieldCreatorWidgetItem(int index, QWidget* parent = nullptr);
+    CreatorFieldWidget(int index, QWidget* parent = nullptr);
     QString getName() const;
     unsigned int getBitCount() const;
     ez::protocol_serializer::ASSOCIATED_TYPE getAssocType() const;
@@ -24,11 +24,11 @@ private:
     QComboBox* m_assocTypeCombo;
 };
 
-class FieldCreatorWidget : public QWidget
+class CreatorWidget : public QWidget
 {
     Q_OBJECT
 public:
-    FieldCreatorWidget(QWidget* parent = nullptr);
+    CreatorWidget(QWidget* parent = nullptr);
     void setProtocolSerializer(ez::protocol_serializer* ps);
 
 signals:
@@ -36,7 +36,7 @@ signals:
 
 private:
     ez::protocol_serializer* m_ps = nullptr;
-    QVector<FieldCreatorWidgetItem*> m_fieldItems;
+    QVector<CreatorFieldWidget*> m_fieldItems;
 
     QPushButton* m_addButton;
     QPushButton* m_removeButton;

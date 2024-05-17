@@ -34,7 +34,7 @@
         </widget>
        </item>
        <item>
-        <widget class="FieldCreatorWidget" name="creatorWidget" native="true"/>
+        <widget class="CreatorWidget" name="creatorWidget" native="true"/>
        </item>
        <item>
         <widget class="QLabel" name="label_2">
@@ -138,7 +138,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>FieldCreatorWidget</class>
+   <class>CreatorWidget</class>
    <extends>QWidget</extends>
    <header>creator_widget.h</header>
    <container>1</container>

@@ -1,7 +1,7 @@
 #include "creator_widget.h"
 #include <QLabel>
 
-FieldCreatorWidget::FieldCreatorWidget(QWidget* parent /* = nullptr */)
+CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     : QWidget(parent)
     , m_addButton(new QPushButton("Add field"))
     , m_removeButton(new QPushButton("Remove field"))
@@ -10,7 +10,7 @@ FieldCreatorWidget::FieldCreatorWidget(QWidget* parent /* = nullptr */)
 {
     connect(m_addButton, &QPushButton::clicked, this, [this]()
             {
-                m_layout->insertWidget(m_layout->count() - 1, new FieldCreatorWidgetItem(m_layout->count()));
+                m_layout->insertWidget(m_layout->count() - 1, new CreatorFieldWidget(m_layout->count()));
             });
     connect(m_removeButton, &QPushButton::clicked, this, [this]()
             {
@@ -28,7 +28,7 @@ FieldCreatorWidget::FieldCreatorWidget(QWidget* parent /* = nullptr */)
                 bool errorOccured = false;
                 for (int i = 0; i < m_layout->count() - 1; ++i)
                 {
-                    FieldCreatorWidgetItem* fieldItem = static_cast<FieldCreatorWidgetItem*>(m_layout->itemAt(i)->widget());
+                    CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_layout->itemAt(i)->widget());
                     if (fieldItem == nullptr)
                         continue;
 
@@ -59,7 +59,7 @@ FieldCreatorWidget::FieldCreatorWidget(QWidget* parent /* = nullptr */)
     setLayout(m_layout);
 }
 
-FieldCreatorWidgetItem::FieldCreatorWidgetItem(int index, QWidget* parent /* = nullptr */)
+CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr */)
     : QWidget(parent)
     , m_index(index)
     , m_nameEdit(new QLineEdit(QString("field_%1").arg(m_index)))
@@ -83,22 +83,22 @@ FieldCreatorWidgetItem::FieldCreatorWidgetItem(int index, QWidget* parent /* = n
     setLayout(layout);
 }
 
-QString FieldCreatorWidgetItem::getName() const
+QString CreatorFieldWidget::getName() const
 {
     return m_nameEdit->text();
 }
 
-unsigned int FieldCreatorWidgetItem::getBitCount() const
+unsigned int CreatorFieldWidget::getBitCount() const
 {
     return m_bitCountEdit->text().toUInt();
 }
 
-ez::protocol_serializer::ASSOCIATED_TYPE FieldCreatorWidgetItem::getAssocType() const
+ez::protocol_serializer::ASSOCIATED_TYPE CreatorFieldWidget::getAssocType() const
 {
     return static_cast<ez::protocol_serializer::ASSOCIATED_TYPE>(m_assocTypeCombo->currentData().toInt());
 }
 
-void FieldCreatorWidget::setProtocolSerializer(ez::protocol_serializer* ps)
+void CreatorWidget::setProtocolSerializer(ez::protocol_serializer* ps)
 {
     m_ps = ps;
 }
