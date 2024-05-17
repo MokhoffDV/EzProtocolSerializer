@@ -101,24 +101,7 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>ps.getVisualization()</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTextEdit" name="visualizationEdit"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>ps.getDataVisualization()</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTextEdit" name="dataVisualizationEdit"/>
+        <widget class="VisualizerWidget" name="visualizerWidget" native="true"/>
        </item>
       </layout>
      </widget>
@@ -137,6 +120,12 @@
    <class>EditorWidget</class>
    <extends>QWidget</extends>
    <header>editor_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>VisualizerWidget</class>
+   <extends>QWidget</extends>
+   <header>visualizer_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
