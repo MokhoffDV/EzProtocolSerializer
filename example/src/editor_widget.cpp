@@ -342,7 +342,7 @@ void EditorFieldWidget::syncFieldWithBuffer()
 
 void EditorFieldWidget::switchBit(const QString& fieldName, const unsigned int bitInd)
 {
-    unsigned char* buffer = const_cast<unsigned char*>(m_ps->getInternalBuffer());
+    unsigned char* buffer = m_ps->getInternalBuffer().get();
     if (buffer == nullptr)
         return;
 

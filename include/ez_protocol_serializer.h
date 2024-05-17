@@ -72,21 +72,19 @@ public:
     protocol_serializer(protocol_serializer&& other) noexcept;
     protocol_serializer& operator=(protocol_serializer&& other) noexcept;
 
-    virtual ~protocol_serializer();
-
     void setIsLittleEndian(const bool isLittleEndian);
     bool getIsLittleEndian() const;
 
     void setBufferSource(const BUFFER_SOURCE bufferSource);
     BUFFER_SOURCE getBufferSource() const;
 
-    const unsigned char* getInternalBuffer() const;
+    const std::unique_ptr<unsigned char[]>& getInternalBuffer() const;
     unsigned int getInternalBufferLength() const;
 
     unsigned char* getExternalBuffer() const;
-    void setExternalBuffer(unsigned char * const externalBuffer);
-    void setInternalBufferValues(unsigned char * const bufferToCopy);
+    void setExternalBuffer(unsigned char* const externalBuffer);
 
+    void setInternalBufferValues(unsigned char* const bufferToCopy);
     unsigned char* getWorkingBuffer() const;
 
     fields_t getFields() const;
@@ -100,6 +98,7 @@ public:
     bool appendField(const field &field);
     bool appendProtocol(const protocol_serializer& other);
 
+    void removeField(const std::string& name);
     void removeLastField();
     void removeAllFields();
     void clearWorkingBuffer();
@@ -122,7 +121,6 @@ public:
     {
         _setFieldValue(field_metadata(fieldFirstBit, fieldBitCount,"<field_ghost>"), value, errorString);
     }
-
  
     template<class T, size_t N>
     void setFieldValueAsArray(const std::string& fieldName, const T array[N], std::string* errorString = nullptr)
@@ -250,9 +248,6 @@ public:
     }
 
 private:
-    void copyFrom(const protocol_serializer& other);
-    void moveFrom(protocol_serializer&& other);
-
     template<class T>
     void _setFieldValue(const field_metadata& field, const T& value, std::string* errorString = nullptr)
     {
@@ -405,17 +400,27 @@ private:
         return *reinterpret_cast<T*>(m_prealloc_finalBytes);
     }
 
-    static void shiftLeft(unsigned char* buf, int len, unsigned char shift);
-    static void shiftRight(unsigned char* buf, int len, unsigned char shift);
-
-    bool m_isLittleEndian;
-    BUFFER_SOURCE m_bufferSource;
-
     static constexpr bool getIsMachineLittleEndian()
     {
         constexpr uint16_t value = 0x1234;
         return static_cast<uint8_t>(value) == 0x34;
     }
+
+    template<typename... Args>
+    static std::string getStringFromFormat(const std::string& format, Args... args)
+    {
+        int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+        if (size_s <= 0) return format;
+        std::unique_ptr<char[]> buf(new char[size_s]);
+        std::snprintf(buf.get(), size_s, format.c_str(), args...);
+        return std::string(buf.get(), buf.get() + size_s - 1);
+    }
+
+    void copyFrom(const protocol_serializer& other);
+    void moveFrom(protocol_serializer&& other);
+
+    static void shiftLeft(unsigned char* buf, int len, unsigned char shift);
+    static void shiftRight(unsigned char* buf, int len, unsigned char shift);
 
     static const std::map<unsigned char, unsigned char>& getRightMasks();
     static const std::map<unsigned char, unsigned char>& getLeftMasks();
@@ -424,20 +429,11 @@ private:
     void reallocateInternalBuffer();
     void updateInternalBuffer();
 
-    template<typename... Args>
-    static std::string getStringFromFormat(const std::string& format, Args... args)
-    {
-        int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
-        if(size_s <= 0) return format;
-        std::unique_ptr<char[]> buf(new char[size_s]);
-        std::snprintf(buf.get(), size_s, format.c_str(), args...);
-        return std::string(buf.get(), buf.get() + size_s - 1);
-    }
-
-    unsigned char* m_internalBuffer = nullptr;
+    std::unique_ptr<unsigned char[]> m_internalBuffer;
     unsigned int m_internalBufferLength = 0;
     unsigned char* m_externalBuffer = nullptr;
     unsigned char* m_workingBuffer = nullptr;
+    BUFFER_SOURCE m_bufferSource;
 
     mutable unsigned char* m_prealloc_finalBytes = nullptr;
     mutable unsigned int m_prealloc_finalBytesCount = 0;
@@ -446,9 +442,9 @@ private:
     mutable unsigned char m_prealloc_rawBytes[65] = "";
     mutable fields_metadata_t::const_iterator m_prealloc_fieldMetadataItt;
 
-private:
     fields_t m_fields;
     fields_metadata_t m_fieldsMetadata;
+    bool m_isLittleEndian;
 };
 
 }

@@ -7,7 +7,7 @@ protocol_serializer::protocol_serializer(const bool isLittleEndian, const protoc
     , m_bufferSource(bufferSource)
 {
     if (bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER)
-        m_workingBuffer = m_internalBuffer;
+        m_workingBuffer = m_internalBuffer.get();
     else
     {
         m_externalBuffer = externalBuffer;
@@ -18,40 +18,38 @@ protocol_serializer::protocol_serializer(const bool isLittleEndian, const protoc
 protocol_serializer::protocol_serializer(const std::vector<field>& fields, const bool isLittleEndian, const BUFFER_SOURCE bufferSource, unsigned char* const externalBuffer)
     : protocol_serializer(isLittleEndian, bufferSource, externalBuffer)
 {
-    bool error = false;
     for (const field& field : fields)
     {
         if (!appendField(field))
         {
-            error = true;
-            break;
+            removeAllFields();
+            return;
         }
     }
-    if (error)
-        removeAllFields();
 }
 
 void ez::protocol_serializer::copyFrom(const protocol_serializer& other)
 {
-    if (m_internalBuffer != nullptr)
-        delete[] m_internalBuffer;
-    m_internalBuffer = nullptr;
-    m_internalBufferLength = other.m_internalBufferLength;
+    // Drop internal buffer
+    m_internalBuffer.reset(nullptr);
+    m_internalBufferLength = 0;
 
-    if (m_internalBufferLength)
+    // Copy internal buffer
+    if (other.m_internalBufferLength && other.m_internalBuffer != nullptr)
     {
-        m_internalBuffer = new unsigned char[m_internalBufferLength];
-        if (other.m_internalBuffer != nullptr)
-            memcpy(m_internalBuffer, other.m_internalBuffer, m_internalBufferLength);
+        m_internalBufferLength = other.m_internalBufferLength;
+        m_internalBuffer.reset(new unsigned char[m_internalBufferLength]);
+        memcpy(m_internalBuffer.get(), other.m_internalBuffer.get(), m_internalBufferLength);
     }
 
+    // Copy other things
     m_externalBuffer = other.m_externalBuffer;
+    m_bufferSource = other.m_bufferSource;
+    m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer.get() : m_externalBuffer;
 
     m_fields = other.m_fields;
     m_fieldsMetadata = other.m_fieldsMetadata;
     m_isLittleEndian = other.m_isLittleEndian;
-    m_bufferSource = other.m_bufferSource;
-    m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer : m_externalBuffer;
 }
 
 protocol_serializer::protocol_serializer(const protocol_serializer& other)
@@ -67,21 +65,18 @@ protocol_serializer& protocol_serializer::operator=(const protocol_serializer& o
 
 void ez::protocol_serializer::moveFrom(protocol_serializer&& other)
 {
-    if (m_internalBuffer != nullptr)
-        delete[] m_internalBuffer;
-    m_internalBuffer = nullptr;
-
+    // Move internal buffer
     m_internalBufferLength = other.m_internalBufferLength;
-    m_internalBuffer = other.m_internalBuffer;
-    other.m_internalBuffer = nullptr;
+    m_internalBuffer = std::move(other.m_internalBuffer);
 
+    // Move other things
     m_externalBuffer = other.m_externalBuffer;
+    m_bufferSource = other.m_bufferSource;
+    m_workingBuffer = other.m_workingBuffer;
 
     m_fields = std::move(other.m_fields);
     m_fieldsMetadata = std::move(other.m_fieldsMetadata);
     m_isLittleEndian = other.m_isLittleEndian;
-    m_bufferSource = other.m_bufferSource;
-    m_workingBuffer = other.m_workingBuffer;
 }
 
 protocol_serializer::protocol_serializer(protocol_serializer&& other) noexcept
@@ -94,14 +89,6 @@ protocol_serializer& protocol_serializer::operator=(protocol_serializer&& other)
     moveFrom(std::move(other));
     return *this;
 }
-
-protocol_serializer::~protocol_serializer()
-{
-    if (m_internalBuffer != nullptr)
-        delete[] m_internalBuffer;
-    m_internalBuffer = nullptr;
-}
-
 
 void protocol_serializer::setIsLittleEndian(const bool isLittleEndian)
 {
@@ -116,10 +103,7 @@ bool protocol_serializer::getIsLittleEndian() const
 void protocol_serializer::setBufferSource(const protocol_serializer::BUFFER_SOURCE bufferSource)
 {
     m_bufferSource = bufferSource;
-    if (bufferSource == protocol_serializer::BUFFER_SOURCE::INTERNAL_BUFFER)
-        m_workingBuffer = m_internalBuffer;
-    else
-        m_workingBuffer = m_externalBuffer;
+    m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer.get() : m_externalBuffer;
 }
 
 protocol_serializer::BUFFER_SOURCE protocol_serializer::getBufferSource() const
@@ -127,7 +111,7 @@ protocol_serializer::BUFFER_SOURCE protocol_serializer::getBufferSource() const
     return m_bufferSource;
 }
 
-const unsigned char* protocol_serializer::getInternalBuffer() const
+const std::unique_ptr<unsigned char[]>& protocol_serializer::getInternalBuffer() const
 {
     return m_internalBuffer;
 }
@@ -151,7 +135,7 @@ void protocol_serializer::setExternalBuffer(unsigned char* const externalBuffer)
 
 void protocol_serializer::setInternalBufferValues(unsigned char* const bufferToCopy)
 {
-    memcpy(m_internalBuffer, bufferToCopy, m_internalBufferLength);
+    memcpy(m_internalBuffer.get(), bufferToCopy, m_internalBufferLength);
 }
 
 unsigned char* protocol_serializer::getWorkingBuffer() const
@@ -175,13 +159,13 @@ ez::protocol_serializer::field_metadata ez::protocol_serializer::getFieldMetadat
 
 std::string protocol_serializer::getVisualization(bool drawHeader, int firstLineNum, unsigned int horizontalBitMargin, unsigned int nameLinesCount, bool printValues) const
 {
-    if (horizontalBitMargin <= 0) horizontalBitMargin = 1;
-    if (nameLinesCount <= 0) nameLinesCount = 1;
+    horizontalBitMargin = horizontalBitMargin == 0 ? 1 : horizontalBitMargin;
+    nameLinesCount = nameLinesCount == 0 ? 1 : nameLinesCount;
 
-    if (m_fields.empty()) return "Protocol::getVisualization(). Protocol is empty";
+    if (m_fields.empty())
+        return "Protocol::getVisualization(). Protocol is empty";
 
     std::vector<bool> bits(m_internalBufferLength * 8, 0);
-
     for (uint32_t i = 0; i < m_internalBufferLength; ++i)
     {
         char c = m_workingBuffer[i];
@@ -337,16 +321,13 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
     if (m_fields.empty())
         return "Protocol::getDataVisualization(). Protocol is empty";
 
-    if (bytesPerLine == 0)
-        bytesPerLine = 1;
+    bytesPerLine = bytesPerLine == 0 ? 1 : bytesPerLine;
 
     unsigned int currentBytesOnLine = 0;
-    unsigned char* workingBuffer = getWorkingBuffer();
 
     std::string currentLineText;
     std::string result;
     unsigned int currentLineNumber = 0;
-
     for (unsigned int i = 0; i < m_internalBufferLength + 1; ++i)
     {
         bool itIsFirstByteInLine = false;
@@ -367,16 +348,15 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
         char byteTextValue[32];
         memset(byteTextValue, 0, sizeof(byteTextValue));
         if (base == BASE::HEX)
-            sprintf_s(byteTextValue, "%x", workingBuffer[i]);
+            sprintf_s(byteTextValue, "%x", m_workingBuffer[i]);
         else if (base == BASE::DEC)
-            sprintf_s(byteTextValue, "%d", workingBuffer[i]);
+            sprintf_s(byteTextValue, "%d", m_workingBuffer[i]);
         else if (base == BASE::OCT)
-            sprintf_s(byteTextValue, "%o", workingBuffer[i]);
+            sprintf_s(byteTextValue, "%o", m_workingBuffer[i]);
         else if (base == BASE::BIN)
-            sprintf_s(byteTextValue, "%s%s", getHalfByteBinary()[workingBuffer[i] >> 4].c_str(), getHalfByteBinary()[workingBuffer[i] & 0x0F].c_str());
+            sprintf_s(byteTextValue, "%s%s", getHalfByteBinary()[m_workingBuffer[i] >> 4].c_str(), getHalfByteBinary()[m_workingBuffer[i] & 0x0F].c_str());
 
         currentLineText += (spacesBetweenBytes ? (itIsFirstByteInLine ? "" : " ") : "") + std::string(byteTextValue);
-
         currentBytesOnLine++;
     }
 
@@ -393,9 +373,8 @@ unsigned char* protocol_serializer::getFieldBytePointer(const std::string& field
         return nullptr;
     }
 
-    unsigned char* workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer : m_externalBuffer;
     const field_metadata& field = m_prealloc_fieldMetadataItt->second;
-    return workingBuffer + field.firstByteInd;
+    return m_workingBuffer + field.firstByteInd;
 }
 
 bool protocol_serializer::appendField(const field& field)
@@ -438,6 +417,24 @@ bool protocol_serializer::appendProtocol(const protocol_serializer& other)
     return true;
 }
 
+void ez::protocol_serializer::removeField(const std::string& name)
+{
+    m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
+    if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.end())
+        return;
+
+    for (auto itt = m_fields.begin(); itt != m_fields.end(); ++itt)
+    {
+        if (*itt == name)
+        {
+            m_fields.erase(itt);
+            m_fieldsMetadata.erase(name);
+            reallocateInternalBuffer();
+            return;
+        }
+    }
+}
+
 void protocol_serializer::removeLastField()
 {
     if (m_fields.empty())
@@ -446,12 +443,18 @@ void protocol_serializer::removeLastField()
     m_fieldsMetadata.erase(m_fieldsMetadata.find(m_fields.back()));
     m_fields.pop_back();
 
-    reallocateInternalBuffer();
+    updateInternalBuffer();
 }
 
 void protocol_serializer::removeAllFields()
 {
-    m_fields.clear(); m_fieldsMetadata.clear(); reallocateInternalBuffer();
+    if (m_fields.empty())
+        return;
+
+    m_fields.clear();
+    m_fieldsMetadata.clear();
+
+    reallocateInternalBuffer();
 }
 
 void protocol_serializer::clearWorkingBuffer()
@@ -459,7 +462,7 @@ void protocol_serializer::clearWorkingBuffer()
     if (m_fields.empty())
         return;
 
-    memset(getWorkingBuffer(), 0, m_internalBufferLength);
+    memset(m_workingBuffer, 0, m_internalBufferLength);
 }
 
 void protocol_serializer::shiftRight(unsigned char* buf, int len, unsigned char shift)
@@ -483,9 +486,29 @@ void protocol_serializer::shiftRight(unsigned char* buf, int len, unsigned char 
     }
 }
 
+void protocol_serializer::shiftLeft(unsigned char* buf, int len, unsigned char shift)
+{
+    char tmp = 0x00, tmp2 = 0x00;
+    for (int k = len; k >= 0; k--)
+    {
+        if (k == len)
+        {
+            tmp = buf[k];
+            buf[k] <<= shift;
+        }
+        else
+        {
+            tmp2 = buf[k];
+            buf[k] <<= shift;
+            buf[k] |= ((tmp & getLeftMasks().at(shift)) >> (8 - shift));
+            tmp = tmp2;
+        }
+    }
+}
+
 const std::map<unsigned char, unsigned char>& protocol_serializer::getRightMasks()
 {
-    static const std::map<unsigned char, unsigned char> rightMasks{
+    static const std::map<unsigned char, unsigned char> rightMasks {
         {0,0x00},
         {1,0x01},
         {2,0x03},
@@ -500,7 +523,7 @@ const std::map<unsigned char, unsigned char>& protocol_serializer::getRightMasks
 
 const std::map<unsigned char, unsigned char>& protocol_serializer::getLeftMasks()
 {
-    static const std::map<unsigned char, unsigned char> leftMasks{
+    static const std::map<unsigned char, unsigned char> leftMasks {
         {0,0x00},
         {1,0x80},
         {2,0xC0},
@@ -522,66 +545,41 @@ const std::vector<std::string>& protocol_serializer::getHalfByteBinary()
     return halfByteBinary;
 }
 
-void protocol_serializer::shiftLeft(unsigned char* buf, int len, unsigned char shift)
-{
-    char tmp = 0x00, tmp2 = 0x00;
-    for (int k = len; k >= 0; k--)
-    {
-        if (k == len)
-        {
-            tmp = buf[k];
-            buf[k] <<= shift;
-        }
-        else
-        {
-            tmp2 = buf[k];
-            buf[k] <<= shift;
-            buf[k] |= ((tmp & getLeftMasks().at(shift)) >> (8 - shift));
-            tmp = tmp2;
-        }
-    }
-}
-
 void protocol_serializer::reallocateInternalBuffer()
 {
-    if (m_internalBuffer != nullptr)
-    {
-        delete[] m_internalBuffer;
-        m_internalBuffer = nullptr;
-        m_internalBufferLength = 0;
-    }
-
+    // Drop internal buffer
+    m_internalBuffer.reset(nullptr);
+    m_internalBufferLength = 0;
     if (m_fields.empty())
         return;
 
+    // Reallocate internal buffer
     const field_metadata& lastFieldMetadata = m_fieldsMetadata.find(m_fields.back())->second;
-
-    unsigned int bits = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
+    const unsigned int bits = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
     m_internalBufferLength = bits / 8 + ((bits % 8) ? 1 : 0);
-    m_internalBuffer = new unsigned char[m_internalBufferLength];
-    memset(m_internalBuffer, 0, m_internalBufferLength);
+    m_internalBuffer.reset(new unsigned char[m_internalBufferLength]);
+    memset(m_internalBuffer.get(), 0, m_internalBufferLength);
 
-    if (m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER)
-        m_workingBuffer = m_internalBuffer;
+    m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer.get() : m_externalBuffer;
 }
 
 void protocol_serializer::updateInternalBuffer()
 {
-    unsigned int oldBufferLength = m_internalBufferLength;
-    unsigned char* oldBuffer = nullptr;
+    // Create a copy of current internal buffer
+    const unsigned int oldBufferLength = m_internalBufferLength;
+    std::unique_ptr<unsigned char[]> oldBufferCopy;
     if (m_internalBuffer != nullptr)
     {
-        oldBuffer = new unsigned char[oldBufferLength];
-        memcpy(oldBuffer, m_internalBuffer, m_internalBufferLength);
+        oldBufferCopy.reset(new unsigned char[oldBufferLength]);
+        memcpy(oldBufferCopy.get(), m_internalBuffer.get(), oldBufferLength);
     }
 
+    // Reallocate internal buffer
     reallocateInternalBuffer();
 
-    if (m_internalBuffer != nullptr && oldBuffer != nullptr)
-        memcpy(m_internalBuffer, oldBuffer, std::min(oldBufferLength, m_internalBufferLength));
-
-    if (oldBuffer != nullptr)
-        delete[] oldBuffer;
+    // Fill with old values
+    if (m_internalBufferLength > 0 && oldBufferLength > 0)
+        memcpy(m_internalBuffer.get(), oldBufferCopy.get(), std::min(m_internalBufferLength, oldBufferLength));
 }
 
 protocol_serializer::field_metadata::field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const ASSOCIATED_TYPE associatedType)

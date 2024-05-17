@@ -25,10 +25,10 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
         
         // Remember previous working buffer state to restore if needed
         const unsigned int prevWorkingBufferLength = m_ps->getInternalBufferLength();
-        std::unique_ptr<unsigned char> prevWorkingBufferCopy = nullptr;
+        std::unique_ptr<unsigned char[]> prevWorkingBufferCopy = nullptr;
         if (prevWorkingBufferLength > 0)
         {
-            prevWorkingBufferCopy = std::make_unique<unsigned char>(new unsigned char[prevWorkingBufferLength]);
+            prevWorkingBufferCopy = std::make_unique<unsigned char[]>(prevWorkingBufferLength);
             memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->getWorkingBuffer(), prevWorkingBufferLength);
         }
         m_ps->removeAllFields();
