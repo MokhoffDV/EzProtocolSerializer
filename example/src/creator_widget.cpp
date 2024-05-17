@@ -9,45 +9,45 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     , m_layout(new QVBoxLayout())
 {
     connect(m_addButton, &QPushButton::clicked, this, [this]()
-            {
-                m_layout->insertWidget(m_layout->count() - 1, new CreatorFieldWidget(m_layout->count()));
-            });
+    {
+        m_layout->insertWidget(m_layout->count() - 1, new CreatorFieldWidget(m_layout->count()));
+    });
     connect(m_removeButton, &QPushButton::clicked, this, [this]()
-            {
-                if (m_layout->count() <= 1)
-                    return;
-                m_layout->takeAt(m_layout->count() - 2)->widget()->deleteLater();
-            });
+    {
+        if (m_layout->count() <= 1)
+            return;
+        m_layout->takeAt(m_layout->count() - 2)->widget()->deleteLater();
+    });
     connect(m_submitButton, &QPushButton::clicked, this, [this]()
+    {
+        if (m_ps == nullptr)
+            return;
+        m_ps->removeAllFields();
+        m_ps->clearWorkingBuffer();
+
+        bool errorOccured = false;
+        for (int i = 0; i < m_layout->count() - 1; ++i)
+        {
+            CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_layout->itemAt(i)->widget());
+            if (fieldItem == nullptr)
+                continue;
+
+            const bool added = m_ps->appendField({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getAssocType()});
+            if (!added)
             {
-                if (m_ps == nullptr)
-                    return;
-                m_ps->removeAllFields();
-                m_ps->clearWorkingBuffer();
+                errorOccured = true;
+                break;
+            }
+        }
 
-                bool errorOccured = false;
-                for (int i = 0; i < m_layout->count() - 1; ++i)
-                {
-                    CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_layout->itemAt(i)->widget());
-                    if (fieldItem == nullptr)
-                        continue;
+        if (errorOccured)
+        {
+            m_ps->removeAllFields();
+            m_ps->clearWorkingBuffer();
+        }
 
-                    const bool added = m_ps->appendField({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getAssocType()});
-                    if (!added)
-                    {
-                        errorOccured = true;
-                        break;
-                    }
-                }
-
-                if (errorOccured)
-                {
-                    m_ps->removeAllFields();
-                    m_ps->clearWorkingBuffer();
-                }
-
-                emit protocolSerializerChanged();
-            });
+        emit protocolSerializerChanged();
+    });
 
     QHBoxLayout* buttonsLayout = new QHBoxLayout();
     buttonsLayout->addWidget(m_addButton);
