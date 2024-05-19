@@ -129,8 +129,7 @@ unsigned char* protocol_serializer::getExternalBuffer() const
 void protocol_serializer::setExternalBuffer(unsigned char* const externalBuffer)
 {
     m_externalBuffer = externalBuffer;
-    if (m_bufferSource == BUFFER_SOURCE::EXTERNAL_BUFFER)
-        m_workingBuffer = m_externalBuffer;
+    m_workingBuffer = m_bufferSource == BUFFER_SOURCE::INTERNAL_BUFFER ? m_internalBuffer.get() : m_externalBuffer;
 }
 
 void protocol_serializer::setInternalBufferValues(unsigned char* const bufferToCopy)
@@ -143,7 +142,7 @@ unsigned char* protocol_serializer::getWorkingBuffer() const
     return m_workingBuffer;
 }
 
-protocol_serializer::fields_t protocol_serializer::getFields() const
+protocol_serializer::fields_list_t protocol_serializer::getFields() const
 {
     return m_fields;
 }
@@ -165,14 +164,14 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     if (m_fields.empty())
         return "Protocol::getVisualization(). Protocol is empty";
 
-    std::vector<bool> bits(m_internalBufferLength * 8, 0);
+    std::vector<bool> bits(m_internalBufferLength * 8LL, 0);
     for (uint32_t i = 0; i < m_internalBufferLength; ++i)
     {
         char c = m_workingBuffer[i];
         for (int j = 7; j >= 0 && c; --j)
         {
             if (c & 0x1)
-                bits[8 * i + j] = 1;
+                bits[8LL * i + j] = 1;
             c >>= 1;
         }
     }
@@ -277,25 +276,25 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
         std::string lineNumEmptyPart = "|     |";
         std::string lineNumBottomPart = "|_____|";
 
-        if (nameLines.at(0).length() >= bitTextLen * 16)
+        if (nameLines.at(0).length() >= bitTextLen * 16ULL)
         {
             for (uint32_t i = 0; i < nameLinesCount; ++i)
             {
-                std::string lineWithoutLineNum = nameLines.at(i).substr(0, bitTextLen * 16) + "\n";
+                std::string lineWithoutLineNum = nameLines.at(i).substr(0, bitTextLen * 16LL) + "\n";
                 if (i == 0)
                     result += (firstLineNum >= 0 ? lineNumNumberPart : "|") + lineWithoutLineNum;
                 else
                     result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + lineWithoutLineNum;
 
-                nameLines[i] = nameLines[i].substr(bitTextLen * 16);
+                nameLines[i] = nameLines[i].substr(bitTextLen * 16LL);
             }
             if (printValues)
             {
-                result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, bitTextLen * 16) + "\n";
-                valuesLine = valuesLine.substr(bitTextLen * 16);
+                result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, bitTextLen * 16LL) + "\n";
+                valuesLine = valuesLine.substr(bitTextLen * 16LL);
             }
-            result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bottomLine.substr(0, bitTextLen * 16) + "\n";
-            bottomLine = bottomLine.substr(bitTextLen * 16);
+            result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bottomLine.substr(0, bitTextLen * 16LL) + "\n";
+            bottomLine = bottomLine.substr(bitTextLen * 16LL);
         }
         else
         {
@@ -307,8 +306,8 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
                     result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + nameLines.at(i) + "\n";
             }
             if (printValues)
-                result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, bitTextLen * 16) + "\n";
-            result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bottomLine.substr(0, bitTextLen * 16) + "\n";
+                result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, bitTextLen * 16LL) + "\n";
+            result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bottomLine.substr(0, bitTextLen * 16LL) + "\n";
             break;
         }
     }
@@ -356,7 +355,7 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
         else if (base == BASE::BIN)
             sprintf_s(byteTextValue, "%s%s", getHalfByteBinary()[m_workingBuffer[i] >> 4].c_str(), getHalfByteBinary()[m_workingBuffer[i] & 0x0F].c_str());
 
-        currentLineText += (spacesBetweenBytes ? (itIsFirstByteInLine ? "" : " ") : "") + std::string(byteTextValue);
+        currentLineText += (spacesBetweenBytes ? (itIsFirstByteInLine ? "" : " ") : "") + std::string(byteTextValue, strlen(byteTextValue));
         currentBytesOnLine++;
     }
 
@@ -377,7 +376,7 @@ unsigned char* protocol_serializer::getFieldBytePointer(const std::string& field
     return m_workingBuffer + field.firstByteInd;
 }
 
-bool protocol_serializer::appendField(const field& field)
+bool protocol_serializer::appendField(const field& field, bool preserveInternalBufferValues)
 {
     if (m_fieldsMetadata.find(field.name) != m_fieldsMetadata.cend())
         return false;
@@ -386,6 +385,9 @@ bool protocol_serializer::appendField(const field& field)
         return false;
 
     if (field.name.empty())
+        return false;
+
+    if (field.associatedType == ASSOCIATED_TYPE::FLOATING_POINT && field.bitCount != 32 && field.bitCount != 64)
         return false;
     
     unsigned int firstBitIndex = 0;
@@ -397,12 +399,16 @@ bool protocol_serializer::appendField(const field& field)
 
     m_fields.push_back(field.name);
     m_fieldsMetadata.insert(fields_metadata_t::value_type(field.name, field_metadata(firstBitIndex, field.bitCount, field.name, field.associatedType)));
-    updateInternalBuffer();
+    
+    if (preserveInternalBufferValues)
+        updateInternalBuffer();
+    else
+        reallocateInternalBuffer();
 
     return true;
 }
 
-bool protocol_serializer::appendProtocol(const protocol_serializer& other)
+bool protocol_serializer::appendProtocol(const protocol_serializer& other, bool preserveInternalBufferValues)
 {
     for (fields_metadata_t::const_iterator itt = other.m_fieldsMetadata.cbegin(); itt != other.m_fieldsMetadata.cend(); ++itt)
         if (m_fieldsMetadata.find(itt->first) != m_fieldsMetadata.cend())
@@ -411,13 +417,13 @@ bool protocol_serializer::appendProtocol(const protocol_serializer& other)
     for (const std::string& fieldName : other.m_fields)
     {
         const field_metadata& fieldMetadata = other.m_fieldsMetadata.find(fieldName)->second;
-        appendField(protocol_serializer::field{fieldMetadata.name, fieldMetadata.bitCount});
+        appendField(protocol_serializer::field{fieldMetadata.name, fieldMetadata.bitCount}, preserveInternalBufferValues);
     }
 
     return true;
 }
 
-void ez::protocol_serializer::removeField(const std::string& name)
+void ez::protocol_serializer::removeField(const std::string& name, bool preserveInternalBufferValues)
 {
     m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
     if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.end())
@@ -429,13 +435,18 @@ void ez::protocol_serializer::removeField(const std::string& name)
         {
             m_fields.erase(itt);
             m_fieldsMetadata.erase(name);
-            reallocateInternalBuffer();
+
+            if (preserveInternalBufferValues)
+                updateInternalBuffer();
+            else
+                reallocateInternalBuffer();
+
             return;
         }
     }
 }
 
-void protocol_serializer::removeLastField()
+void protocol_serializer::removeLastField(bool preserveInternalBufferValues)
 {
     if (m_fields.empty())
         return;
@@ -443,7 +454,10 @@ void protocol_serializer::removeLastField()
     m_fieldsMetadata.erase(m_fieldsMetadata.find(m_fields.back()));
     m_fields.pop_back();
 
-    updateInternalBuffer();
+    if (preserveInternalBufferValues)
+        updateInternalBuffer();
+    else
+        reallocateInternalBuffer();
 }
 
 void protocol_serializer::removeAllFields()
@@ -467,6 +481,9 @@ void protocol_serializer::clearWorkingBuffer()
 
 void protocol_serializer::shiftRight(unsigned char* buf, int len, unsigned char shift)
 {
+    if (len <= 0)
+        return;
+
     unsigned char tmp = 0x00, tmp2 = 0x00;
     for (int k = 0; k <= len; ++k)
     {
@@ -488,7 +505,10 @@ void protocol_serializer::shiftRight(unsigned char* buf, int len, unsigned char 
 
 void protocol_serializer::shiftLeft(unsigned char* buf, int len, unsigned char shift)
 {
-    char tmp = 0x00, tmp2 = 0x00;
+    if (len <= 0)
+        return;
+
+    unsigned char tmp = 0x00, tmp2 = 0x00;
     for (int k = len; k >= 0; k--)
     {
         if (k == len)

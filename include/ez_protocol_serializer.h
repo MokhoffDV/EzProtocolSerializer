@@ -54,7 +54,7 @@ public:
         ASSOCIATED_TYPE associatedType;
     };
 
-    using fields_t = std::list<std::string>;
+    using fields_list_t = std::list<std::string>;
     using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
 
     protocol_serializer(const bool isLittleEndian = false,
@@ -87,7 +87,7 @@ public:
     void setInternalBufferValues(unsigned char* const bufferToCopy);
     unsigned char* getWorkingBuffer() const;
 
-    fields_t getFields() const;
+    fields_list_t getFields() const;
     field_metadata getFieldMetadata(const std::string& name) const;
 
     std::string getVisualization(bool drawHeader = true, int firstLineNum = 1, unsigned int horizontalBitMargin = 3, unsigned int nameLinesCount = 2, bool printValues = false) const;
@@ -95,11 +95,11 @@ public:
 
     unsigned char* getFieldBytePointer(const std::string &fieldName) const;
 
-    bool appendField(const field &field);
-    bool appendProtocol(const protocol_serializer& other);
+    bool appendField(const field& field, bool preserveInternalBufferValues = true);
+    bool appendProtocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
 
-    void removeField(const std::string& name);
-    void removeLastField();
+    void removeField(const std::string& name, bool preserveInternalBufferValues = true);
+    void removeLastField(bool preserveInternalBufferValues = true);
     void removeAllFields();
     void clearWorkingBuffer();
 
@@ -442,7 +442,7 @@ private:
     mutable unsigned char m_prealloc_rawBytes[65] = "";
     mutable fields_metadata_t::const_iterator m_prealloc_fieldMetadataItt;
 
-    fields_t m_fields;
+    fields_list_t m_fields;
     fields_metadata_t m_fieldsMetadata;
     bool m_isLittleEndian;
 };
