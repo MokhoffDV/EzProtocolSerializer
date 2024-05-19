@@ -416,6 +416,8 @@ private:
         return std::string(buf.get(), buf.get() + size_s - 1);
     }
 
+    std::string intToStringWithLeadingZeros(int value, size_t length) const;
+
     void copyFrom(const protocol_serializer& other);
     void moveFrom(protocol_serializer&& other);
 
