@@ -25,20 +25,6 @@ protocol_serializer::protocol_serializer(const std::vector<field>& fields, const
     }
 }
 
-std::string ez::protocol_serializer::intToStringWithLeadingZeros(int value, size_t length) const
-{
-    std::string intString = std::to_string(value);
-    size_t numLeadingZeros = length - intString.length();
-
-    if (value < 0)
-        numLeadingZeros -= 1;
-
-    if (numLeadingZeros > 0)
-        intString = std::string(numLeadingZeros, '0') + intString;
-
-    return intString;
-}
-
 void ez::protocol_serializer::copyFrom(const protocol_serializer& other)
 {
     // Drop internal buffer
@@ -199,9 +185,9 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
         std::string mostSignificantHeader;
         for (int i = 15; i >= 0; i--) {
             if (i < 8)
-                lessSignificantHeader += std::string("|") + std::string(horizontalBitMargin - 1, ' ') + (i < 10 ? "0" : "") + std::to_string(i) + std::string(horizontalBitMargin, ' ');
+                lessSignificantHeader += "|" + std::string(horizontalBitMargin - 1, ' ') + intToStringWithLeadingZeros(i, 2) + std::string(horizontalBitMargin, ' ');
             else
-                mostSignificantHeader += std::string("|") + std::string(horizontalBitMargin - 1, ' ') + (i < 10 ? "0" : "") + std::to_string(i) + std::string(horizontalBitMargin, ' ');
+                mostSignificantHeader += "|" + std::string(horizontalBitMargin - 1, ' ') + intToStringWithLeadingZeros(i, 2) + std::string(horizontalBitMargin, ' ');
         }
 
         if (firstLineNum >= 0)
@@ -212,7 +198,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
             result += lessSignificantHeader + mostSignificantHeader + "|\n";
     }
 
-    // Generate name lines, value line, bottom line
+    // Generate name lines, value line, bits line
     // as continious lines through whole protocol
     const size_t bitTextLen = horizontalBitMargin * 2ULL + 2ULL;
     const size_t wordTextLen = bitTextLen * 16ULL;
@@ -316,7 +302,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     return result;
 }
 
-std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsigned int bytesPerLine, BASE base, bool spacesBetweenBytes)
+std::string protocol_serializer::getDataVisualization(int firstLineNum, unsigned int bytesPerLine, BASE base, bool spacesBetweenBytes)
 {
     if (m_fields.empty())
         return "Protocol::getDataVisualization(). Protocol is empty";
@@ -340,7 +326,7 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
 
             currentBytesOnLine = 0;
 
-            currentLineText = (firstLineNumber >= 0) ? (std::to_string(firstLineNumber + currentLineNumber++) + ": ") : "";
+            currentLineText = (firstLineNum >= 0) ? (std::to_string(firstLineNum + currentLineNumber++) + ": ") : "";
         }
 
         char byteTextValue[32];
@@ -361,12 +347,12 @@ std::string protocol_serializer::getDataVisualization(int firstLineNumber, unsig
     return result;
 }
 
-unsigned char* protocol_serializer::getFieldBytePointer(const std::string& fieldName) const
+unsigned char* protocol_serializer::getFieldBytePointer(const std::string& name) const
 {
-    m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+    m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
 
     if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
-        printf("Protocol::getFieldFirstBytePointer. There is no field '%s'!\n", fieldName.c_str());
+        printf("Protocol::getFieldFirstBytePointer. There is no field '%s'!\n", name.c_str());
         return nullptr;
     }
 
@@ -549,6 +535,20 @@ const std::vector<std::string>& protocol_serializer::getHalfByteBinary()
         "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"
     };
     return halfByteBinary;
+}
+
+std::string ez::protocol_serializer::intToStringWithLeadingZeros(int value, size_t length) const
+{
+    std::string intString = std::to_string(value);
+    size_t numLeadingZeros = length - intString.length();
+
+    if (value < 0)
+        numLeadingZeros -= 1;
+
+    if (numLeadingZeros > 0)
+        intString = std::string(numLeadingZeros, '0') + intString;
+
+    return intString;
 }
 
 void protocol_serializer::reallocateInternalBuffer()

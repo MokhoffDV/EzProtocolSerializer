@@ -95,9 +95,9 @@ public:
     field_metadata getFieldMetadata(const std::string& name) const;
 
     std::string getVisualization(bool drawHeader = true, int firstLineNum = 1, unsigned int horizontalBitMargin = 3, unsigned int nameLinesCount = 2, bool printValues = false) const;
-    std::string getDataVisualization(int firstLineNumber = 1, unsigned int bytesPerLine = 2, BASE base = BASE::HEX, bool spacesBetweenBytes = true);
+    std::string getDataVisualization(int firstLineNum = 1, unsigned int bytesPerLine = 2, BASE base = BASE::HEX, bool spacesBetweenBytes = true);
 
-    unsigned char* getFieldBytePointer(const std::string& fieldName) const;
+    unsigned char* getFieldBytePointer(const std::string& name) const;
 
     bool appendField(const field& field, bool preserveInternalBufferValues = true);
     bool appendProtocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
@@ -108,12 +108,12 @@ public:
     void clearWorkingBuffer();
 
     template<class T>
-    void setFieldValue(const std::string& fieldName, const T& value, std::string* errorString = nullptr)
+    void setFieldValue(const std::string& name, const T& value, std::string* errorString = nullptr)
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
         if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::setFieldValue. There is no field '%s'!\n", fieldName.c_str());
+                *errorString = getStringFromFormat("Protocol::setFieldValue. There is no field '%s'!\n", name.c_str());
             return;
         }
         _setFieldValue(m_prealloc_fieldMetadataItt->second, value, errorString);
@@ -126,19 +126,19 @@ public:
     }
 
     template<class T, size_t N>
-    void setFieldValueAsArray(const std::string& fieldName, const T array[N], std::string* errorString = nullptr)
+    void setFieldValueAsArray(const std::string& name, const T array[N], std::string* errorString = nullptr)
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
         if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::setFieldValueAsArray.There is no field '%s'!\n", fieldName.c_str());
+                *errorString = getStringFromFormat("Protocol::setFieldValueAsArray.There is no field '%s'!\n", name.c_str());
             return;
         }
 
         const field_metadata& field = m_prealloc_fieldMetadataItt->second;
         if (field.bitCount % N) {
             if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
-                                                                           fieldName.c_str(), field.bitCount, N);
+                                                                           name.c_str(), field.bitCount, N);
             return;
         }
 
@@ -178,12 +178,12 @@ public:
     }
 
     template<class T>
-    T readFieldValue(const std::string& fieldName, std::string* errorString = nullptr) const
+    T readFieldValue(const std::string& name, std::string* errorString = nullptr) const
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
         if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::readFieldValue. There is no field '%s'!\n", fieldName.c_str());
+                *errorString = getStringFromFormat("Protocol::readFieldValue. There is no field '%s'!\n", name.c_str());
             return T{};
         }
         return _readFieldValue<T>(m_prealloc_fieldMetadataItt->second, errorString);
@@ -196,19 +196,19 @@ public:
     }
 
     template<class T, size_t N>
-    void readFieldValueAsArray(const std::string& fieldName, T array[N], std::string* errorString = nullptr) const
+    void readFieldValueAsArray(const std::string& name, T array[N], std::string* errorString = nullptr) const
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(fieldName);
+        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
         if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. There is no field '%s'!\n", fieldName.c_str());
+                *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. There is no field '%s'!\n", name.c_str());
             return;
         }
 
         const field_metadata& field = m_prealloc_fieldMetadataItt->second;
         if (field.bitCount % N) {
             if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
-                                                                           fieldName.c_str(), field.bitCount, N);
+                                                                           name.c_str(), field.bitCount, N);
             return;
         }
 
@@ -249,19 +249,19 @@ public:
 
 private:
     template<class T>
-    void _setFieldValue(const field_metadata& field, const T& value, std::string* errorString = nullptr)
+    void _setFieldValue(const field_metadata& fieldMetadata, const T& value, std::string* errorString = nullptr)
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::setFieldValue. T should be arithmetic!");
 
-        if (m_isLittleEndian && field.bitCount > 8 && field.bitCount % 8) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", field.name.c_str(), field.bitCount);
+        if (m_isLittleEndian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
+            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return;
         }
 
         if (std::is_floating_point<T>::value) {
-            if (field.bitCount != 32 && field.bitCount != 64) {
+            if (fieldMetadata.bitCount != 32 && fieldMetadata.bitCount != 64) {
                 if (errorString != nullptr)
-                    *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", field.name.c_str(), field.bitCount);
+                    *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
                 return;
             }
         }
@@ -271,8 +271,8 @@ private:
             return;
         }
 
-        if (field.bitCount > 64) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", field.name.c_str(), field.bitCount);
+        if (fieldMetadata.bitCount > 64) {
+            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return;
         }
 
@@ -281,55 +281,55 @@ private:
             m_prealloc_val = value;
             m_prealloc_ptrToFirstCopyableMostSignificantByte = (unsigned char*)&m_prealloc_val;
             if (!getIsMachineLittleEndian()) {
-                m_prealloc_ptrToFirstCopyableMostSignificantByte += sizeof(uint64_t) - field.bytesCount;
+                m_prealloc_ptrToFirstCopyableMostSignificantByte += sizeof(uint64_t) - fieldMetadata.bytesCount;
             }
-            memcpy(m_prealloc_rawBytes, m_prealloc_ptrToFirstCopyableMostSignificantByte, field.bytesCount);
+            memcpy(m_prealloc_rawBytes, m_prealloc_ptrToFirstCopyableMostSignificantByte, fieldMetadata.bytesCount);
             if (getIsMachineLittleEndian() != m_isLittleEndian)
-                for (uint32_t i = 0; i < field.bytesCount / 2; ++i)
-                    std::swap(m_prealloc_rawBytes[i], m_prealloc_rawBytes[field.bytesCount - 1 - i]);
+                for (uint32_t i = 0; i < fieldMetadata.bytesCount / 2; ++i)
+                    std::swap(m_prealloc_rawBytes[i], m_prealloc_rawBytes[fieldMetadata.bytesCount - 1 - i]);
         } else if (std::is_floating_point<T>::value) {
-            if (field.bytesCount == 4) {
+            if (fieldMetadata.bytesCount == 4) {
                 float val = value;
                 memcpy(m_prealloc_rawBytes, &val, 4);
-            } else if (field.bytesCount == 8) {
+            } else if (fieldMetadata.bytesCount == 8) {
                 double val = value;
                 memcpy(m_prealloc_rawBytes, &val, 8);
             }
         }
 
-        if (field.leftSpacing == 0 && field.rightSpacing == 0) {
-            memcpy(m_workingBuffer + field.firstByteInd, m_prealloc_rawBytes, field.bytesCount);
+        if (fieldMetadata.leftSpacing == 0 && fieldMetadata.rightSpacing == 0) {
+            memcpy(m_workingBuffer + fieldMetadata.firstByteInd, m_prealloc_rawBytes, fieldMetadata.bytesCount);
             return;
         }
 
         m_prealloc_finalBytes = m_prealloc_rawBytes;
-        if (field.rightSpacing) {
-            shiftRight(m_prealloc_rawBytes, field.bytesCount + 1, 8 - field.rightSpacing);
-            if (unsigned char transferableBitsCount = field.bitCount % 8)
-                if (8 - field.rightSpacing >= transferableBitsCount)
+        if (fieldMetadata.rightSpacing) {
+            shiftRight(m_prealloc_rawBytes, fieldMetadata.bytesCount + 1, 8 - fieldMetadata.rightSpacing);
+            if (unsigned char transferableBitsCount = fieldMetadata.bitCount % 8)
+                if (8 - fieldMetadata.rightSpacing >= transferableBitsCount)
                     m_prealloc_finalBytes = m_prealloc_rawBytes + 1;
         }
 
         unsigned char mask = 0;
-        for (uint32_t i = 0; i < field.touchedBytesCount; ++i) {
-            mask = i == 0 ? field.firstMask : i != field.touchedBytesCount - 1 ? 0xFF : field.lastMask;
-            m_workingBuffer[field.firstByteInd + i] &= ~mask;
-            m_workingBuffer[field.firstByteInd + i] |= m_prealloc_finalBytes[i] & mask;
+        for (uint32_t i = 0; i < fieldMetadata.touchedBytesCount; ++i) {
+            mask = i == 0 ? fieldMetadata.firstMask : i != fieldMetadata.touchedBytesCount - 1 ? 0xFF : fieldMetadata.lastMask;
+            m_workingBuffer[fieldMetadata.firstByteInd + i] &= ~mask;
+            m_workingBuffer[fieldMetadata.firstByteInd + i] |= m_prealloc_finalBytes[i] & mask;
         }
     }
 
     template<class T>
-    T _readFieldValue(const field_metadata& field, std::string* errorString = nullptr) const
+    T _readFieldValue(const field_metadata& fieldMetadata, std::string* errorString = nullptr) const
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::readFieldValue. T should be arithmetic!");
 
-        if (m_isLittleEndian && field.bitCount > 8 && field.bitCount % 8) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", field.name.c_str(), field.bitCount);
+        if (m_isLittleEndian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
+            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return T{};
         }
         if (std::is_floating_point<T>::value) {
-            if (field.bitCount != 32 && field.bitCount != 64) {
-                if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", field.name.c_str(), field.bitCount);
+            if (fieldMetadata.bitCount != 32 && fieldMetadata.bitCount != 64) {
+                if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
                 return T{};
             }
         }
@@ -339,56 +339,56 @@ private:
             return T{};
         }
 
-        if (field.bitCount > 64) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", field.name.c_str(), field.bitCount);
+        if (fieldMetadata.bitCount > 64) {
+            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return T{};
         }
 
         memset(m_prealloc_rawBytes, 0, 65);
-        memcpy(m_prealloc_rawBytes, m_workingBuffer + field.firstByteInd, field.touchedBytesCount);
+        memcpy(m_prealloc_rawBytes, m_workingBuffer + fieldMetadata.firstByteInd, fieldMetadata.touchedBytesCount);
 
         m_prealloc_finalBytes = m_prealloc_rawBytes;
-        m_prealloc_finalBytesCount = field.bytesCount;
-        if (field.rightSpacing || field.leftSpacing) {
-            m_prealloc_rawBytes[0] &= field.firstMask;
-            if (field.touchedBytesCount > 1)
-                m_prealloc_rawBytes[field.touchedBytesCount - 1] &= field.lastMask;
+        m_prealloc_finalBytesCount = fieldMetadata.bytesCount;
+        if (fieldMetadata.rightSpacing || fieldMetadata.leftSpacing) {
+            m_prealloc_rawBytes[0] &= fieldMetadata.firstMask;
+            if (fieldMetadata.touchedBytesCount > 1)
+                m_prealloc_rawBytes[fieldMetadata.touchedBytesCount - 1] &= fieldMetadata.lastMask;
 
-            if (field.rightSpacing) {
-                shiftRight(m_prealloc_rawBytes, field.touchedBytesCount, field.rightSpacing);
-                m_prealloc_finalBytes = m_prealloc_rawBytes + field.touchedBytesCount - field.bytesCount;
+            if (fieldMetadata.rightSpacing) {
+                shiftRight(m_prealloc_rawBytes, fieldMetadata.touchedBytesCount, fieldMetadata.rightSpacing);
+                m_prealloc_finalBytes = m_prealloc_rawBytes + fieldMetadata.touchedBytesCount - fieldMetadata.bytesCount;
             }
         }
 
         if (std::is_floating_point<T>::value) {
-            if (field.bytesCount == 4)
+            if (fieldMetadata.bytesCount == 4)
                 return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_finalBytes));
-            else if (field.bytesCount == 8)
+            else if (fieldMetadata.bytesCount == 8)
                 return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_finalBytes));
         }
 
         if (getIsMachineLittleEndian() != m_isLittleEndian)
-            for (uint32_t i = 0; i < field.bytesCount / 2; ++i)
-                std::swap(m_prealloc_finalBytes[i], m_prealloc_finalBytes[field.bytesCount - i - 1]);
+            for (uint32_t i = 0; i < fieldMetadata.bytesCount / 2; ++i)
+                std::swap(m_prealloc_finalBytes[i], m_prealloc_finalBytes[fieldMetadata.bytesCount - i - 1]);
 
-        if (field.bytesCount > sizeof(T)) {
+        if (fieldMetadata.bytesCount > sizeof(T)) {
             if (!getIsMachineLittleEndian()) {
-                m_prealloc_finalBytes += field.bytesCount - sizeof(T);
-                m_prealloc_finalBytesCount -= field.bytesCount - sizeof(T);
+                m_prealloc_finalBytes += fieldMetadata.bytesCount - sizeof(T);
+                m_prealloc_finalBytesCount -= fieldMetadata.bytesCount - sizeof(T);
             }
         }
 
         if (std::is_signed_v<T>) {
             if (!getIsMachineLittleEndian()) {
-                if (m_prealloc_finalBytes[0] & (1 << (7 - (field.leftSpacing + field.rightSpacing) % 8)))
-                    return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, field.bitCount)));
+                if (m_prealloc_finalBytes[0] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
+                    return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, fieldMetadata.bitCount)));
             } else {
-                if (field.bitCount < 8) {
-                    if (m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (field.leftSpacing + field.rightSpacing) % 8)))
-                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, field.bitCount)));
+                if (fieldMetadata.bitCount < 8) {
+                    if (m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
+                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, fieldMetadata.bitCount)));
                 } else {
-                    if (m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (field.leftSpacing + field.rightSpacing) % 8))) {
-                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, field.bitCount)));
+                    if (m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8))) {
+                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, fieldMetadata.bitCount)));
                     }
                 }
             }
