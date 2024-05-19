@@ -31,17 +31,17 @@ class EditorFieldWidget : public QWidget
     Q_OBJECT
 public:
     EditorFieldWidget(ez::protocol_serializer* ps,
-                const ez::protocol_serializer::field_metadata& fieldMetadata,
-                const unsigned int startBitInd,
-                const unsigned int lastBitInd,
-                bool isMain,
-                QWidget* parent = nullptr);
+                      const ez::protocol_serializer::field_metadata& fieldMetadata,
+                      const unsigned int startBitInd,
+                      const unsigned int lastBitInd,
+                      bool isMain,
+                      QWidget* parent = nullptr);
 signals:
     void fieldValueChanged(const QString& fieldName);
 
 private:
     friend class EditorWidget;
-    void addChildField(EditorFieldWidget *childFieldWidget);
+    void addChildField(EditorFieldWidget* childFieldWidget);
     void syncFieldWithBuffer();
     void switchBit(const QString& fieldName, const unsigned int bitInd);
     QString getFieldValueAsText();

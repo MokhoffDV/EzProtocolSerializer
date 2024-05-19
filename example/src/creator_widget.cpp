@@ -22,12 +22,11 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     {
         if (m_ps == nullptr)
             return;
-        
+
         // Remember previous working buffer state to restore if needed
         const unsigned int prevWorkingBufferLength = m_ps->getInternalBufferLength();
         std::unique_ptr<unsigned char[]> prevWorkingBufferCopy = nullptr;
-        if (prevWorkingBufferLength > 0)
-        {
+        if (prevWorkingBufferLength > 0) {
             prevWorkingBufferCopy.reset(new unsigned char[prevWorkingBufferLength]);
             memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->getWorkingBuffer(), prevWorkingBufferLength);
         }
@@ -35,22 +34,19 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
         m_ps->clearWorkingBuffer();
 
         bool errorOccured = false;
-        for (int i = 0; i < m_layout->count() - 1; ++i)
-        {
+        for (int i = 0; i < m_layout->count() - 1; ++i) {
             CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_layout->itemAt(i)->widget());
             if (fieldItem == nullptr)
                 continue;
 
             const bool added = m_ps->appendField({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getAssocType()});
-            if (!added)
-            {
+            if (!added) {
                 errorOccured = true;
                 break;
             }
         }
 
-        if (errorOccured)
-        {
+        if (errorOccured) {
             m_ps->removeAllFields();
             m_ps->clearWorkingBuffer();
         }
@@ -66,7 +62,7 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     QHBoxLayout* buttonsLayout = new QHBoxLayout();
     buttonsLayout->addWidget(m_addButton);
     buttonsLayout->addWidget(m_removeButton);
-    buttonsLayout->addSpacerItem(new QSpacerItem(0,0));
+    buttonsLayout->addSpacerItem(new QSpacerItem(0, 0));
     buttonsLayout->addWidget(m_submitButton);
     m_layout->addLayout(buttonsLayout);
 

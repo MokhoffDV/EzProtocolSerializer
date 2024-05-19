@@ -43,29 +43,25 @@ void EditorWidget::regenerate()
 
     // Layout of every row in the table
     QVector<QHBoxLayout*> rowsLayout(fieldsTable->rowCount());
-    for (int i = 0; i < rowsLayout.size(); ++i)
-    {
+    for (int i = 0; i < rowsLayout.size(); ++i) {
         rowsLayout[i] = new QHBoxLayout();
         rowsLayout[i]->setContentsMargins(0, 0, 0, 0);
         rowsLayout[i]->setSpacing(0);
     }
 
     // Go through every bit of every field
-    for (const std::string& fieldName : m_ps->getFields())
-    {
+    for (const std::string& fieldName : m_ps->getFields()) {
         const ez::protocol_serializer::field_metadata& fieldMetadata = m_ps->getFieldMetadata(fieldName);
         unsigned int currentWordInd = fieldMetadata.firstBitInd / 16;
         unsigned int currentBitInd = fieldMetadata.firstBitInd;
         unsigned int firstBitIndInsideCurrentWord = fieldMetadata.firstBitInd;
         EditorFieldWidget* mainFieldWidget = nullptr;
-        while (true)
-        {
+        while (true) {
             bool fieldWidgetEndsHere = false;
             bool fieldEndsHere = false;
 
             // It was the last bit of current field
-            if (currentBitInd >= fieldMetadata.firstBitInd + fieldMetadata.bitCount - 1)
-            {
+            if (currentBitInd >= fieldMetadata.firstBitInd + fieldMetadata.bitCount - 1) {
                 fieldWidgetEndsHere = true;
                 fieldEndsHere = true;
             }
@@ -75,19 +71,15 @@ void EditorWidget::regenerate()
                 fieldWidgetEndsHere = true;
 
             // Line or field finishes here. Insert widget (either main one with value edit or child widget)
-            if (fieldWidgetEndsHere)
-            {
-                if (mainFieldWidget == nullptr)
-                {
+            if (fieldWidgetEndsHere) {
+                if (mainFieldWidget == nullptr) {
                     mainFieldWidget = new EditorFieldWidget(m_ps,
                                                             fieldMetadata,
                                                             firstBitIndInsideCurrentWord,
                                                             currentBitInd,
                                                             true);
                     rowsLayout[currentWordInd]->addWidget(mainFieldWidget);
-                }
-                else
-                {
+                } else {
                     EditorFieldWidget* wgt = new EditorFieldWidget(m_ps,
                                                                    fieldMetadata,
                                                                    firstBitIndInsideCurrentWord,
@@ -96,7 +88,7 @@ void EditorWidget::regenerate()
                     rowsLayout[currentWordInd]->addWidget(wgt);
                     mainFieldWidget->addChildField(wgt);
                 }
-                
+
                 // Stretch this field widget respective to its bit length
                 const int lastWidgetInRowIndex = rowsLayout[currentWordInd]->count() - 1;
                 rowsLayout[currentWordInd]->setStretch(lastWidgetInRowIndex, currentBitInd - firstBitIndInsideCurrentWord + 1);
@@ -133,8 +125,7 @@ void EditorWidget::regenerate()
         lastRowLayout->addWidget(new QWidget(), 16 - filledBits);
 
     // Insert all rows widgets in the table
-    for (int i = 0; i < rowsLayout.size(); ++i)
-    {
+    for (int i = 0; i < rowsLayout.size(); ++i) {
         QWidget* row = new QWidget();
         row->setLayout(rowsLayout[i]);
         fieldsTable->setCellWidget(i, 0, row);
@@ -195,35 +186,26 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
     // It is a main field (with line edit) 
-    if (m_isMain)
-    {
+    if (m_isMain) {
         m_valueEdit = new QLineEdit();
         m_valueEdit->setMinimumWidth(1);
         m_valueEdit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
         // Set respective validators to only allow values which fit this field
-        if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT)
-        {
-            if (m_fieldMetadata.bitCount == 32)
-            {
+        if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT) {
+            if (m_fieldMetadata.bitCount == 32) {
                 QDoubleValidator* validator = new QDoubleValidator(std::numeric_limits<float>::min(), std::numeric_limits<float>::max(), 3, m_valueEdit);
                 m_valueEdit->setValidator(validator);
-            }
-            else if (m_fieldMetadata.bitCount == 64)
-            {
+            } else if (m_fieldMetadata.bitCount == 64) {
                 QDoubleValidator* validator = new QDoubleValidator(std::numeric_limits<double>::min(), std::numeric_limits<double>::max(), 3, m_valueEdit);
                 m_valueEdit->setValidator(validator);
             }
-        }
-        else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER)
-        {
+        } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER) {
             int64_t max = 0;
             for (unsigned int i = 0; i < m_fieldMetadata.bitCount - 1; ++i) { max = (max << 1) + 1; }
             Int64Validator* validator = new Int64Validator(-max - 1, max, m_valueEdit);
             m_valueEdit->setValidator(validator);
-        }
-        else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::UNSIGNED_INTEGER)
-        {
+        } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::UNSIGNED_INTEGER) {
             uint64_t max = 0;
             for (unsigned int i = 0; i < m_fieldMetadata.bitCount; ++i) { max = (max << 1) + 1; }
             UInt64Validator* validator = new UInt64Validator(max, m_valueEdit);
@@ -242,14 +224,12 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
                 return;
 
             const QString fieldName = m_fieldMetadata.name.c_str();
-            if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT)
-            {
+            if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT) {
                 if (m_fieldMetadata.bitCount == 32)
                     m_ps->setFieldValue(fieldName.toStdString(), textToCheck.toFloat());
                 else if (m_fieldMetadata.bitCount == 64)
                     m_ps->setFieldValue(fieldName.toStdString(), textToCheck.toDouble());
-            }
-            else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER)
+            } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER)
                 m_ps->setFieldValue(fieldName.toStdString(), textToCheck.toLongLong());
             else
                 m_ps->setFieldValue(fieldName.toStdString(), textToCheck.toULongLong());
@@ -269,9 +249,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
         // Create field name on top, value edit at the bottom
         mainLayout->addWidget(name);
         mainLayout->addWidget(m_valueEdit);
-    }
-    else
-    {
+    } else {
         // Otherwise create empty label on top and empty value edit on the bottom
         // just to match visual look of main field
         QLineEdit* dummyEdit = new QLineEdit();
@@ -295,8 +273,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
     QHBoxLayout* bitsLayout = new QHBoxLayout();
     bitsLayout->setSpacing(0);
     bitsLayout->setContentsMargins(0, 0, 0, 0);
-    for (uint32_t i = startBitInd; i <= lastBitInd; ++i)
-    {
+    for (uint32_t i = startBitInd; i <= lastBitInd; ++i) {
         QPushButton* bitButton = new QPushButton();
         bitButton->setMinimumWidth(1);
         bitButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
@@ -327,8 +304,7 @@ void EditorFieldWidget::addChildField(EditorFieldWidget* childFieldWidget)
 
 void EditorFieldWidget::syncFieldWithBuffer()
 {
-    if (m_isMain)
-    {
+    if (m_isMain) {
         m_valueEdit->blockSignals(true);
         m_valueEdit->setText(getFieldValueAsText());
         m_valueEdit->blockSignals(false);
@@ -355,20 +331,15 @@ void EditorFieldWidget::switchBit(const QString& fieldName, const unsigned int b
 
 QString EditorFieldWidget::getFieldValueAsText()
 {
-    if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT && (m_fieldMetadata.bitCount == 32 || m_fieldMetadata.bitCount == 64))
-    {
+    if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT && (m_fieldMetadata.bitCount == 32 || m_fieldMetadata.bitCount == 64)) {
         if (m_fieldMetadata.bitCount == 32)      return QString::number(m_ps->readFieldValue<float>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount == 64) return QString::number(m_ps->readFieldValue<double>(m_fieldMetadata.name), 'f', 6);
-    }
-    else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER)
-    {
+    } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER) {
         if (m_fieldMetadata.bitCount <= 8)  return QString::number(m_ps->readFieldValue<int8_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 16) return QString::number(m_ps->readFieldValue<int16_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 32) return QString::number(m_ps->readFieldValue<int32_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 64) return QString::number(m_ps->readFieldValue<int64_t>(m_fieldMetadata.name));
-    }
-    else
-    {
+    } else {
         if (m_fieldMetadata.bitCount <= 8)  return QString::number(m_ps->readFieldValue<uint8_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 16) return QString::number(m_ps->readFieldValue<uint16_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 32) return QString::number(m_ps->readFieldValue<uint32_t>(m_fieldMetadata.name));
@@ -380,8 +351,7 @@ QString EditorFieldWidget::getFieldValueAsText()
 void EditorFieldWidget::syncBitButtonsToBuffer(unsigned char* buffer)
 {
     unsigned int bitInd, byteInd, bitIndInsideByte;
-    for (QPushButton* bitButton : m_bitButtons)
-    {
+    for (QPushButton* bitButton : m_bitButtons) {
         bitInd = bitButton->property("bit_index").toInt();
         byteInd = bitInd / 8;
         bitIndInsideByte = 7 - bitInd % 8;
