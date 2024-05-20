@@ -98,39 +98,39 @@ public:
     using byte_ptr_t = unsigned char*;
 
     // Creation
-    protocol_serializer(const bool isLittleEndian = false,
-                        const buffer_source bufferSource = buffer_source::internal,
-                        byte_ptr_t const externalBuffer = nullptr);
+    protocol_serializer(const bool is_little_endian = false,
+                        const buffer_source buffer_source = buffer_source::internal,
+                        byte_ptr_t const external_buffer = nullptr);
 
     protocol_serializer(const std::vector<field_init>& fields,
-                        const bool isLittleEndian = false,
-                        const buffer_source bufferSource = buffer_source::internal,
-                        byte_ptr_t const externalBuffer = nullptr);
+                        const bool is_little_endian = false,
+                        const buffer_source buffer_source = buffer_source::internal,
+                        byte_ptr_t const external_buffer = nullptr);
     protocol_serializer(const protocol_serializer& other);
     protocol_serializer& operator=(const protocol_serializer& other);
     protocol_serializer(protocol_serializer&& other) noexcept;
     protocol_serializer& operator=(protocol_serializer&& other) noexcept;
 
     // Protocol description
-    result_code     append_field(const field_init& field_init, bool preserveInternalBufferValues = true);
-    result_code     append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
-    result_code     remove_field(const std::string& name, bool preserveInternalBufferValues = true);
-    result_code     remove_last_field(bool preserveInternalBufferValues = true);
+    result_code     append_field(const field_init& field_init, bool preserve_internal_buffer_values = true);
+    result_code     append_protocol(const protocol_serializer& other, bool preserve_internal_buffer_values = true);
+    result_code     remove_field(const std::string& name, bool preserve_internal_buffer_values = true);
+    result_code     remove_last_field(bool preserve_internal_buffer_values = true);
     result_code     clear_protocol();
     fields_list_t   get_fields_list() const;
     field_metadata  get_field_metadata(const std::string& name) const;
 
     // Byte order for multi-byte integers
-    void set_is_little_endian(const bool isLittleEndian);
+    void set_is_little_endian(const bool is_little_endian);
     bool get_is_little_endian() const;
 
     // Buffers
-    void                         set_buffer_source(const buffer_source bufferSource);
+    void                         set_buffer_source(const buffer_source buffer_source);
     buffer_source                get_buffer_source() const;
     const internal_buffer_ptr_t& get_internal_buffer() const;
     unsigned int                 get_internal_buffer_length() const;
     byte_ptr_t                   get_external_buffer() const;
-    void                         set_external_buffer(byte_ptr_t const externalBuffer);
+    void                         set_external_buffer(byte_ptr_t const external_buffer);
     byte_ptr_t                   get_working_buffer() const;
     void                         clear_working_buffer();
     byte_ptr_t                   get_field_pointer(const std::string& name) const;
@@ -151,9 +151,9 @@ public:
     }
 
     template<class T>
-    result_code write_ghost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T& value)
+    result_code write_ghost(const unsigned int field_first_bit, const unsigned int field_bit_count, const T& value)
     {
-        return _write(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), value);
+        return _write(field_metadata(field_first_bit, field_bit_count, "<field_ghost>"), value);
     }
 
     template<class T, size_t N>
@@ -167,10 +167,10 @@ public:
         if (field_init.bit_count % N)
             return result_code::not_applicable;
 
-        const unsigned char ghostFieldLength = field_init.bit_count / N;
+        const unsigned char ghost_field_length = field_init.bit_count / N;
         for (unsigned int i = 0; i < N; ++i) {
-            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
-            const result_code result = write_ghost(first_bit_ind, ghostFieldLength, array[i], &localResult);
+            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghost_field_length;
+            const result_code result = write_ghost(first_bit_ind, ghost_field_length, array[i]);
             if (result != result_code::ok)
                 return result;
         }
@@ -179,15 +179,15 @@ public:
     }
 
     template<class T, size_t N>
-    result_code write_ghost_array(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T array[N])
+    result_code write_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, const T array[N])
     {
-        if (fieldBitCount % N)
+        if (field_bit_count % N)
             return result_code::not_applicable;
 
-        const unsigned char ghostFieldLength = fieldBitCount / N;
+        const unsigned char ghost_field_length = field_bit_count / N;
         for (unsigned int i = 0; i < N; ++i) {
-            const unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
-            const result_code result = set_ghost(first_bit_ind, ghostFieldLength, array[i]);
+            const unsigned int first_bit_ind = field_first_bit + i * ghost_field_length;
+            const result_code result = set_ghost(first_bit_ind, ghost_field_length, array[i]);
             if (result != result_code::ok)
                 return result;
         }
@@ -208,9 +208,9 @@ public:
     }
 
     template<class T>
-    T read_ghost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, result_code* result = nullptr) const
+    T read_ghost(const unsigned int field_first_bit, const unsigned int field_bit_count, result_code* result = nullptr) const
     {
-        return _read<T>(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), result);
+        return _read<T>(field_metadata(field_first_bit, field_bit_count, "<field_ghost>"), result);
     }
 
     template<class T, size_t N>
@@ -230,14 +230,14 @@ public:
             return;
         }
 
-        const unsigned char ghostFieldLength = field_init.bit_count / N;
+        const unsigned char ghost_field_length = field_init.bit_count / N;
         for (unsigned int i = 0; i < N; ++i) {
-            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
-            result_code localResult = result_code::ok;
-            array[i] = read_ghost<T>(first_bit_ind, ghostFieldLength, &localResult);
-            if (localResult != result_code::ok) {
+            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghost_field_length;
+            result_code local_result = result_code::ok;
+            array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
+            if (local_result != result_code::ok) {
                 if (result != nullptr)
-                    *result = localResult;
+                    *result = local_result;
                 return;
             }
         }
@@ -247,22 +247,22 @@ public:
     }
 
     template<class T, size_t N>
-    void read_ghost_array(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, T array[N], result_code* result = nullptr)
+    void read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, T array[N], result_code* result = nullptr)
     {
-        if (fieldBitCount % N) {
+        if (field_bit_count % N) {
             if (result != nullptr)
                 *result = result_code::not_applicable;
             return;
         }
 
-        const unsigned char ghostFieldLength = fieldBitCount / N;
+        const unsigned char ghost_field_length = field_bit_count / N;
         for (unsigned int i = 0; i < N; ++i) {
-            const unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
-            result_code localResult = result_code::ok;
-            array[i] = read_ghost<T>(first_bit_ind, ghostFieldLength, &localResult);
-            if (localResult != result_code::ok) {
+            const unsigned int first_bit_ind = field_first_bit + i * ghost_field_length;
+            result_code local_result = result_code::ok;
+            array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
+            if (local_result != result_code::ok) {
                 if (result != nullptr)
-                    *result = localResult;
+                    *result = local_result;
                 return;
             }
         }
@@ -273,93 +273,79 @@ public:
 
 private:
     template<class T>
-    void _write(const field_metadata& fieldMetadata, const T& value, result_code* result = nullptr)
+    result_code _write(const field_metadata& field_metadata, const T& value)
     {
         static_assert(std::is_arithmetic<T>(), "T should be arithmetic!");
 
-        if (m_is_little_endian && fieldMetadata.bit_count > 8 && fieldMetadata.bit_count % 8) {
-            if (result != nullptr)
-                *result = result_code::not_applicable;
-            return;
-        }
+        if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8)
+            return result_code::not_applicable;
 
-        if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bit_count != 32 && fieldMetadata.bit_count != 64) {
-                if (result != nullptr)
-                    *result = result_code::not_applicable;
-                return;
-            }
-        }
+        if (std::is_floating_point<T>::value)
+            if (field_metadata.bit_count != 32 && field_metadata.bit_count != 64)
+                return result_code::not_applicable;
 
-        if (m_working_buffer == nullptr) {
-            if (result != nullptr)
-                *result = result_code::bad_input;
-            return;
-        }
+        if (m_working_buffer == nullptr)
+            return result_code::bad_input;
 
-        if (fieldMetadata.bit_count > 64) {
-            if (result != nullptr)
-                *result = result_code::not_applicable;
-            return;
-        }
+        if (field_metadata.bit_count > 64)
+            return result_code::not_applicable;
 
         memset(m_prealloc_raw_bytes, 0, 65);
         if (std::is_integral<T>::value) {
             m_prealloc_val = value;
             m_prealloc_ptr_to_first_copyable_msb = (byte_ptr_t)&m_prealloc_val;
             if (!get_is_host_little_endian()) {
-                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - fieldMetadata.bytes_count;
+                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - field_metadata.bytes_count;
             }
-            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, fieldMetadata.bytes_count);
+            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, field_metadata.bytes_count);
             if (get_is_host_little_endian() != m_is_little_endian)
-                for (uint32_t i = 0; i < fieldMetadata.bytes_count / 2; ++i)
-                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[fieldMetadata.bytes_count - 1 - i]);
+                for (uint32_t i = 0; i < field_metadata.bytes_count / 2; ++i)
+                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[field_metadata.bytes_count - 1 - i]);
         } else if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bytes_count == 4) {
+            if (field_metadata.bytes_count == 4) {
                 float val = value;
                 memcpy(m_prealloc_raw_bytes, &val, 4);
-            } else if (fieldMetadata.bytes_count == 8) {
+            } else if (field_metadata.bytes_count == 8) {
                 double val = value;
                 memcpy(m_prealloc_raw_bytes, &val, 8);
             }
         }
 
-        if (fieldMetadata.left_spacing == 0 && fieldMetadata.right_spacing == 0) {
-            memcpy(m_working_buffer + fieldMetadata.first_byte_ind, m_prealloc_raw_bytes, fieldMetadata.bytes_count);
-            return;
+        if (field_metadata.left_spacing == 0 && field_metadata.right_spacing == 0) {
+            memcpy(m_working_buffer + field_metadata.first_byte_ind, m_prealloc_raw_bytes, field_metadata.bytes_count);
+            return result_code::ok;
         }
 
         m_prealloc_final_bytes = m_prealloc_raw_bytes;
-        if (fieldMetadata.right_spacing) {
-            shift_right(m_prealloc_raw_bytes, fieldMetadata.bytes_count + 1, 8 - fieldMetadata.right_spacing);
-            if (unsigned char transferableBitsCount = fieldMetadata.bit_count % 8)
-                if (8 - fieldMetadata.right_spacing >= transferableBitsCount)
+        if (field_metadata.right_spacing) {
+            shift_right(m_prealloc_raw_bytes, field_metadata.bytes_count + 1, 8 - field_metadata.right_spacing);
+            if (unsigned char transferable_bits_count = field_metadata.bit_count % 8)
+                if (8 - field_metadata.right_spacing >= transferable_bits_count)
                     m_prealloc_final_bytes = m_prealloc_raw_bytes + 1;
         }
 
         unsigned char mask = 0;
-        for (uint32_t i = 0; i < fieldMetadata.touched_bytes_count; ++i) {
-            mask = i == 0 ? fieldMetadata.first_mask : i != fieldMetadata.touched_bytes_count - 1 ? 0xFF : fieldMetadata.last_mask;
-            m_working_buffer[fieldMetadata.first_byte_ind + i] &= ~mask;
-            m_working_buffer[fieldMetadata.first_byte_ind + i] |= m_prealloc_final_bytes[i] & mask;
+        for (uint32_t i = 0; i < field_metadata.touched_bytes_count; ++i) {
+            mask = i == 0 ? field_metadata.first_mask : i != field_metadata.touched_bytes_count - 1 ? 0xFF : field_metadata.last_mask;
+            m_working_buffer[field_metadata.first_byte_ind + i] &= ~mask;
+            m_working_buffer[field_metadata.first_byte_ind + i] |= m_prealloc_final_bytes[i] & mask;
         }
 
-        if (result != nullptr)
-            *result = result_code::ok;
+        return result_code::ok;
     }
 
     template<class T>
-    T _read(const field_metadata& fieldMetadata, result_code* result = nullptr) const
+    T _read(const field_metadata& field_metadata, result_code* result = nullptr) const
     {
         static_assert(std::is_arithmetic<T>(), "T should be arithmetic!");
 
-        if (m_is_little_endian && fieldMetadata.bit_count > 8 && fieldMetadata.bit_count % 8) {
+        if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8) {
             if (result != nullptr)
                 *result = result_code::not_applicable;
             return T{};
         }
         if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bit_count != 32 && fieldMetadata.bit_count != 64) {
+            if (field_metadata.bit_count != 32 && field_metadata.bit_count != 64) {
                 if (result != nullptr)
                     *result = result_code::not_applicable;
                 return T{};
@@ -372,57 +358,57 @@ private:
             return T{};
         }
 
-        if (fieldMetadata.bit_count > 64) {
+        if (field_metadata.bit_count > 64) {
             if (result != nullptr)
                 *result = result_code::not_applicable;
             return T{};
         }
 
         memset(m_prealloc_raw_bytes, 0, 65);
-        memcpy(m_prealloc_raw_bytes, m_working_buffer + fieldMetadata.first_byte_ind, fieldMetadata.touched_bytes_count);
+        memcpy(m_prealloc_raw_bytes, m_working_buffer + field_metadata.first_byte_ind, field_metadata.touched_bytes_count);
 
         m_prealloc_final_bytes = m_prealloc_raw_bytes;
-        m_prealloc_final_bytes_count = fieldMetadata.bytes_count;
-        if (fieldMetadata.right_spacing || fieldMetadata.left_spacing) {
-            m_prealloc_raw_bytes[0] &= fieldMetadata.first_mask;
-            if (fieldMetadata.touched_bytes_count > 1)
-                m_prealloc_raw_bytes[fieldMetadata.touched_bytes_count - 1] &= fieldMetadata.last_mask;
+        m_prealloc_final_bytes_count = field_metadata.bytes_count;
+        if (field_metadata.right_spacing || field_metadata.left_spacing) {
+            m_prealloc_raw_bytes[0] &= field_metadata.first_mask;
+            if (field_metadata.touched_bytes_count > 1)
+                m_prealloc_raw_bytes[field_metadata.touched_bytes_count - 1] &= field_metadata.last_mask;
 
-            if (fieldMetadata.right_spacing) {
-                shift_right(m_prealloc_raw_bytes, fieldMetadata.touched_bytes_count, fieldMetadata.right_spacing);
-                m_prealloc_final_bytes = m_prealloc_raw_bytes + fieldMetadata.touched_bytes_count - fieldMetadata.bytes_count;
+            if (field_metadata.right_spacing) {
+                shift_right(m_prealloc_raw_bytes, field_metadata.touched_bytes_count, field_metadata.right_spacing);
+                m_prealloc_final_bytes = m_prealloc_raw_bytes + field_metadata.touched_bytes_count - field_metadata.bytes_count;
             }
         }
 
         if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bytes_count == 4)
+            if (field_metadata.bytes_count == 4)
                 return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_final_bytes));
-            else if (fieldMetadata.bytes_count == 8)
+            else if (field_metadata.bytes_count == 8)
                 return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_final_bytes));
         }
 
         if (get_is_host_little_endian() != m_is_little_endian)
-            for (uint32_t i = 0; i < fieldMetadata.bytes_count / 2; ++i)
-                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[fieldMetadata.bytes_count - i - 1]);
+            for (uint32_t i = 0; i < field_metadata.bytes_count / 2; ++i)
+                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[field_metadata.bytes_count - i - 1]);
 
-        if (fieldMetadata.bytes_count > sizeof(T)) {
+        if (field_metadata.bytes_count > sizeof(T)) {
             if (!get_is_host_little_endian()) {
-                m_prealloc_final_bytes += fieldMetadata.bytes_count - sizeof(T);
-                m_prealloc_final_bytes_count -= fieldMetadata.bytes_count - sizeof(T);
+                m_prealloc_final_bytes += field_metadata.bytes_count - sizeof(T);
+                m_prealloc_final_bytes_count -= field_metadata.bytes_count - sizeof(T);
             }
         }
 
         if (std::is_signed_v<T>) {
             if (!get_is_host_little_endian()) {
-                if (m_prealloc_final_bytes[0] & (1 << (7 - (fieldMetadata.left_spacing + fieldMetadata.right_spacing) % 8)))
-                    return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
+                if (m_prealloc_final_bytes[0] & (1 << (7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8)))
+                    return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
             } else {
-                if (fieldMetadata.bit_count < 8) {
-                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.left_spacing + fieldMetadata.right_spacing) % 8)))
-                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
+                if (field_metadata.bit_count < 8) {
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8)))
+                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
                 } else {
-                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.left_spacing + fieldMetadata.right_spacing) % 8))) {
-                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8))) {
+                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
                     }
                 }
             }

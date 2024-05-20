@@ -41,8 +41,8 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
             if (fieldItem == nullptr)
                 continue;
 
-            const bool added = m_ps->append_field({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getVisualizationType()});
-            if (!added) {
+            const ez::protocol_serializer::result_code resultCode = m_ps->append_field({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getVisualizationType()});
+            if (resultCode != ez::protocol_serializer::result_code::ok) {
                 errorOccured = true;
                 break;
             }

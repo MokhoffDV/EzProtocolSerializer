@@ -2,23 +2,23 @@
 
 using ez::protocol_serializer;
 
-protocol_serializer::protocol_serializer(const bool isLittleEndian, const protocol_serializer::buffer_source bufferSource, byte_ptr_t const externalBuffer)
-    : m_is_little_endian(isLittleEndian)
-    , m_buffer_source(bufferSource)
+protocol_serializer::protocol_serializer(const bool is_little_endian, const protocol_serializer::buffer_source buffer_source, byte_ptr_t const external_buffer)
+    : m_is_little_endian(is_little_endian)
+    , m_buffer_source(buffer_source)
 {
-    if (bufferSource == buffer_source::internal)
+    if (buffer_source == buffer_source::internal)
         m_working_buffer = m_internal_buffer.get();
     else {
-        m_external_buffer = externalBuffer;
+        m_external_buffer = external_buffer;
         m_working_buffer = m_external_buffer;
     }
 }
 
-protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool isLittleEndian, const buffer_source bufferSource, byte_ptr_t const externalBuffer)
-    : protocol_serializer(isLittleEndian, bufferSource, externalBuffer)
+protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool is_little_endian, const buffer_source buffer_source, byte_ptr_t const external_buffer)
+    : protocol_serializer(is_little_endian, buffer_source, external_buffer)
 {
     for (const field_init& field_init : fields) {
-        if (!append_field(field_init)) {
+        if (append_field(field_init) != result_code::ok) {
             clear_protocol();
             return;
         }
@@ -86,9 +86,9 @@ protocol_serializer& protocol_serializer::operator=(protocol_serializer&& other)
     return *this;
 }
 
-void protocol_serializer::set_is_little_endian(const bool isLittleEndian)
+void protocol_serializer::set_is_little_endian(const bool is_little_endian)
 {
-    m_is_little_endian = isLittleEndian;
+    m_is_little_endian = is_little_endian;
 }
 
 bool protocol_serializer::get_is_little_endian() const
@@ -96,9 +96,9 @@ bool protocol_serializer::get_is_little_endian() const
     return m_is_little_endian;
 }
 
-void protocol_serializer::set_buffer_source(const protocol_serializer::buffer_source bufferSource)
+void protocol_serializer::set_buffer_source(const protocol_serializer::buffer_source buffer_source)
 {
-    m_buffer_source = bufferSource;
+    m_buffer_source = buffer_source;
     m_working_buffer = m_buffer_source == buffer_source::internal ? m_internal_buffer.get() : m_external_buffer;
 }
 
@@ -122,9 +122,9 @@ ez::protocol_serializer::byte_ptr_t protocol_serializer::get_external_buffer() c
     return m_external_buffer;
 }
 
-void protocol_serializer::set_external_buffer(byte_ptr_t const externalBuffer)
+void protocol_serializer::set_external_buffer(byte_ptr_t const external_buffer)
 {
-    m_external_buffer = externalBuffer;
+    m_external_buffer = external_buffer;
     m_working_buffer = m_buffer_source == buffer_source::internal ? m_internal_buffer.get() : m_external_buffer;
 }
 
@@ -156,10 +156,10 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
     const_cast<visualization_params&>(vp).name_lines_count = vp.name_lines_count == 0 ? 1 : vp.name_lines_count;
 
     // Identify length of line numbers
-    const std::string firstLineNumStr = std::to_string(vp.first_line_num);
-    const size_t lastLineNum = vp.first_line_num + (m_internal_buffer_length / 2) + (m_internal_buffer_length % 2) - 1;
-    const std::string lastLineNumStr = std::to_string(lastLineNum);
-    const size_t lineNumStrLength = std::max(firstLineNumStr.length(), lastLineNumStr.length());
+    const std::string first_line_num_str = std::to_string(vp.first_line_num);
+    const size_t last_line_num = vp.first_line_num + (m_internal_buffer_length / 2) + (m_internal_buffer_length % 2) - 1;
+    const std::string last_line_numStr = std::to_string(last_line_num);
+    const size_t line_num_str_length = std::max(first_line_num_str.length(), last_line_numStr.length());
 
     // Fill bits array
     std::vector<bool> bits(m_internal_buffer_length * 8LL, 0);
@@ -176,121 +176,121 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
 
     // Generate header
     if (vp.draw_header) {
-        std::string lessSignificantHeader;
-        std::string mostSignificantHeader;
+        std::string less_significant_header;
+        std::string most_significant_header;
         for (int i = 15; i >= 0; i--) {
-            const std::string bitSegment = "|" + std::string(vp.horizontal_bit_margin - 1, ' ') + int_to_str_leading_zeros(i, 2) + std::string(vp.horizontal_bit_margin, ' ');
+            const std::string bit_segment = "|" + std::string(vp.horizontal_bit_margin - 1, ' ') + int_to_str_leading_zeros(i, 2) + std::string(vp.horizontal_bit_margin, ' ');
             if (i < 8)
-                lessSignificantHeader += bitSegment;
+                less_significant_header += bit_segment;
             else
-                mostSignificantHeader += bitSegment;
+                most_significant_header += bit_segment;
         }
 
         if (vp.first_line_num >= 0)
-            result = "|" + std::string(lineNumStrLength + 2, '_');
+            result = "|" + std::string(line_num_str_length + 2, '_');
         if (!m_is_little_endian)
-            result += mostSignificantHeader + lessSignificantHeader + "|\n";
+            result += most_significant_header + less_significant_header + "|\n";
         else
-            result += lessSignificantHeader + mostSignificantHeader + "|\n";
+            result += less_significant_header + most_significant_header + "|\n";
     }
 
     // Generate name lines, value line, bits line
     // as continious lines through whole protocol
-    const size_t bitTextLen = vp.horizontal_bit_margin * 2ULL + 2ULL;
-    const size_t wordTextLen = bitTextLen * 16ULL;
-    std::vector<std::string> nameLines(vp.name_lines_count);
-    std::string valuesLine;
-    std::string bitsLine;
-    int currBitIndInsideBuffer = 0;
-    for (const std::string& fieldName : m_fields) {
-        const field_metadata& fieldMetadata = m_fields_metadata.find(fieldName)->second;
-        const size_t availableFieldLength = fieldMetadata.bit_count * bitTextLen - 1;
-        std::string name = fieldMetadata.name;
-        std::vector<std::string> nameLinesForField(vp.name_lines_count);
+    const size_t bit_text_len = vp.horizontal_bit_margin * 2ULL + 2ULL;
+    const size_t word_text_len = bit_text_len * 16ULL;
+    std::vector<std::string> name_lines(vp.name_lines_count);
+    std::string values_line;
+    std::string bits_line;
+    int curr_bit_ind_inside_buffer = 0;
+    for (const std::string& field_name : m_fields) {
+        const field_metadata& field_metadata = m_fields_metadata.find(field_name)->second;
+        const size_t available_field_length = field_metadata.bit_count * bit_text_len - 1;
+        std::string name = field_metadata.name;
+        std::vector<std::string> name_linesForField(vp.name_lines_count);
 
         for (uint32_t i = 0; i < vp.name_lines_count; ++i) {
-            std::string& fieldLine = nameLinesForField.at(i);
-            fieldLine = name.substr(0, availableFieldLength);
-            if (name.length() >= availableFieldLength)
-                name = name.substr(availableFieldLength);
+            std::string& field_line = name_linesForField.at(i);
+            field_line = name.substr(0, available_field_length);
+            if (name.length() >= available_field_length)
+                name = name.substr(available_field_length);
             else
                 name = "";
-            fieldLine = fieldLine + std::string(availableFieldLength - fieldLine.length(), ' ') + "|";
-            nameLines[i] += fieldLine;
+            field_line = field_line + std::string(available_field_length - field_line.length(), ' ') + "|";
+            name_lines[i] += field_line;
         }
 
         if (vp.print_values) {
-            std::string valueLine;
-            if (fieldMetadata.vis_type == visualization_type::floating_point && (fieldMetadata.bit_count == 32 || fieldMetadata.bit_count == 64)) {
-                if (fieldMetadata.bit_count == 32) valueLine = "=" + std::to_string(read<float>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count == 64) valueLine = "=" + std::to_string(read<double>(fieldMetadata.name));
-            } else if (fieldMetadata.vis_type == visualization_type::signed_integer) {
-                if (fieldMetadata.bit_count <= 8)  valueLine = "=" + std::to_string(read<int8_t>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count <= 16) valueLine = "=" + std::to_string(read<int16_t>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count <= 32) valueLine = "=" + std::to_string(read<int32_t>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count <= 64) valueLine = "=" + std::to_string(read<int64_t>(fieldMetadata.name));
+            std::string value_line;
+            if (field_metadata.vis_type == visualization_type::floating_point && (field_metadata.bit_count == 32 || field_metadata.bit_count == 64)) {
+                if (field_metadata.bit_count == 32) value_line = "=" + std::to_string(read<float>(field_metadata.name));
+                else if (field_metadata.bit_count == 64) value_line = "=" + std::to_string(read<double>(field_metadata.name));
+            } else if (field_metadata.vis_type == visualization_type::signed_integer) {
+                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<int8_t>(field_metadata.name));
+                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<int16_t>(field_metadata.name));
+                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<int32_t>(field_metadata.name));
+                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<int64_t>(field_metadata.name));
             } else {
-                if (fieldMetadata.bit_count <= 8)  valueLine = "=" + std::to_string(read<uint8_t>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count <= 16) valueLine = "=" + std::to_string(read<uint16_t>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count <= 32) valueLine = "=" + std::to_string(read<uint32_t>(fieldMetadata.name));
-                else if (fieldMetadata.bit_count <= 64) valueLine = "=" + std::to_string(read<uint64_t>(fieldMetadata.name));
+                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<uint8_t>(field_metadata.name));
+                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<uint16_t>(field_metadata.name));
+                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<uint32_t>(field_metadata.name));
+                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<uint64_t>(field_metadata.name));
             }
 
-            valueLine = valueLine.substr(0, availableFieldLength);
-            valueLine = valueLine + std::string(availableFieldLength - valueLine.length(), ' ') + "|";
-            valuesLine += valueLine;
+            value_line = value_line.substr(0, available_field_length);
+            value_line = value_line + std::string(available_field_length - value_line.length(), ' ') + "|";
+            values_line += value_line;
         }
 
-        std::string bitLineText;
-        for (size_t j = 0; j < availableFieldLength; ++j) {
-            if (j >= vp.horizontal_bit_margin && ((j - vp.horizontal_bit_margin) % bitTextLen) == 0)
-                bitLineText += std::to_string((int)bits[currBitIndInsideBuffer++]);
-            else if ((j + 1) % bitTextLen)
-                bitLineText += "_";
+        std::string bit_line_text;
+        for (size_t j = 0; j < available_field_length; ++j) {
+            if (j >= vp.horizontal_bit_margin && ((j - vp.horizontal_bit_margin) % bit_text_len) == 0)
+                bit_line_text += std::to_string((int)bits[curr_bit_ind_inside_buffer++]);
+            else if ((j + 1) % bit_text_len)
+                bit_line_text += "_";
             else
-                bitLineText += "'";
+                bit_line_text += "'";
         }
-        bitLineText += "|";
-        bitsLine += bitLineText;
+        bit_line_text += "|";
+        bits_line += bit_line_text;
     }
 
     // Split those lines into 16 bits per line
-    unsigned int currentLineNum = 0;
+    unsigned int current_line_num = 0;
     while (true) {
-        if (nameLines.at(0).length() == 0)
+        if (name_lines.at(0).length() == 0)
             break;
-        const int lineNum = vp.first_line_num + currentLineNum++;
-        const std::string lineNumStr = int_to_str_leading_zeros(lineNum, lineNumStrLength);
-        const std::string lineNumNumberPart = "| " + lineNumStr + " |";
-        const std::string lineNumEmptyPart = "|" + std::string(lineNumStr.length() + 2, ' ') + "|";
-        const std::string lineNumBottomPart = "|" + std::string(lineNumStr.length() + 2, '_') + "|";
+        const int line_num = vp.first_line_num + current_line_num++;
+        const std::string line_numStr = int_to_str_leading_zeros(line_num, line_num_str_length);
+        const std::string line_numNumberPart = "| " + line_numStr + " |";
+        const std::string line_numEmptyPart = "|" + std::string(line_numStr.length() + 2, ' ') + "|";
+        const std::string line_numBottomPart = "|" + std::string(line_numStr.length() + 2, '_') + "|";
 
-        if (nameLines.at(0).length() >= wordTextLen) {
+        if (name_lines.at(0).length() >= word_text_len) {
             for (uint32_t i = 0; i < vp.name_lines_count; ++i) {
-                const std::string lineWithoutLineNum = nameLines.at(i).substr(0, wordTextLen) + "\n";
+                const std::string line_without_line_num = name_lines.at(i).substr(0, word_text_len) + "\n";
                 if (i == 0)
-                    result += (vp.first_line_num >= 0 ? lineNumNumberPart : "|") + lineWithoutLineNum;
+                    result += (vp.first_line_num >= 0 ? line_numNumberPart : "|") + line_without_line_num;
                 else
-                    result += (vp.first_line_num >= 0 ? lineNumEmptyPart : "|") + lineWithoutLineNum;
+                    result += (vp.first_line_num >= 0 ? line_numEmptyPart : "|") + line_without_line_num;
 
-                nameLines[i] = nameLines[i].substr(wordTextLen);
+                name_lines[i] = name_lines[i].substr(word_text_len);
             }
             if (vp.print_values) {
-                result += (vp.first_line_num >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, wordTextLen) + "\n";
-                valuesLine = valuesLine.substr(wordTextLen);
+                result += (vp.first_line_num >= 0 ? line_numEmptyPart : "|") + values_line.substr(0, word_text_len) + "\n";
+                values_line = values_line.substr(word_text_len);
             }
-            result += (vp.first_line_num >= 0 ? lineNumBottomPart : "|") + bitsLine.substr(0, wordTextLen) + "\n";
-            bitsLine = bitsLine.substr(wordTextLen);
+            result += (vp.first_line_num >= 0 ? line_numBottomPart : "|") + bits_line.substr(0, word_text_len) + "\n";
+            bits_line = bits_line.substr(word_text_len);
         } else {
             for (uint32_t i = 0; i < vp.name_lines_count; ++i) {
                 if (i == 0)
-                    result += (vp.first_line_num >= 0 ? lineNumNumberPart : "|") + nameLines.at(i) + "\n";
+                    result += (vp.first_line_num >= 0 ? line_numNumberPart : "|") + name_lines.at(i) + "\n";
                 else
-                    result += (vp.first_line_num >= 0 ? lineNumEmptyPart : "|") + nameLines.at(i) + "\n";
+                    result += (vp.first_line_num >= 0 ? line_numEmptyPart : "|") + name_lines.at(i) + "\n";
             }
             if (vp.print_values)
-                result += (vp.first_line_num >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, wordTextLen) + "\n";
-            result += (vp.first_line_num >= 0 ? lineNumBottomPart : "|") + bitsLine.substr(0, wordTextLen) + "\n";
+                result += (vp.first_line_num >= 0 ? line_numEmptyPart : "|") + values_line.substr(0, word_text_len) + "\n";
+            result += (vp.first_line_num >= 0 ? line_numBottomPart : "|") + bits_line.substr(0, word_text_len) + "\n";
             break;
         }
     }
@@ -304,50 +304,50 @@ std::string protocol_serializer::get_data_visualization(const data_visualization
         return "";
 
     const_cast<data_visualization_params&>(dvp).bytes_per_line = dvp.bytes_per_line == 0 ? 1 : dvp.bytes_per_line;
-    const std::string firstLineNumStr = std::to_string(dvp.first_line_num);
-    const size_t lastLineNum = dvp.first_line_num + m_internal_buffer_length / dvp.bytes_per_line + ((m_internal_buffer_length % dvp.bytes_per_line) ? 1 : 0) - 1;
-    const std::string lastLineNumStr = std::to_string(lastLineNum);
-    const size_t lineNumStrLength = std::max(firstLineNumStr.length(), lastLineNumStr.length());
-    unsigned int currentBytesOnLine = 0;
+    const std::string first_line_num_str = std::to_string(dvp.first_line_num);
+    const size_t last_line_num = dvp.first_line_num + m_internal_buffer_length / dvp.bytes_per_line + ((m_internal_buffer_length % dvp.bytes_per_line) ? 1 : 0) - 1;
+    const std::string last_line_numStr = std::to_string(last_line_num);
+    const size_t line_num_str_length = std::max(first_line_num_str.length(), last_line_numStr.length());
+    unsigned int current_bytes_on_line = 0;
 
-    std::string currentLineText;
+    std::string current_line_text;
     std::string result;
-    unsigned int currentLineNumber = 0;
+    unsigned int current_line_number = 0;
     for (unsigned int i = 0; i < m_internal_buffer_length + 1; ++i) {
-        bool itIsFirstByteInLine = false;
-        if (currentBytesOnLine == dvp.bytes_per_line || i == 0 || i == m_internal_buffer_length) {
-            itIsFirstByteInLine = true;
-            if (currentLineText.length())
-                result += (result.empty() ? "" : "\n") + currentLineText;
+        bool it_is_first_byte_in_line = false;
+        if (current_bytes_on_line == dvp.bytes_per_line || i == 0 || i == m_internal_buffer_length) {
+            it_is_first_byte_in_line = true;
+            if (current_line_text.length())
+                result += (result.empty() ? "" : "\n") + current_line_text;
 
             if (i == m_internal_buffer_length)
                 break;
 
-            currentBytesOnLine = 0;
+            current_bytes_on_line = 0;
 
-            currentLineText = (dvp.first_line_num >= 0) ? (int_to_str_leading_zeros(dvp.first_line_num + currentLineNumber++, lineNumStrLength) + ": ") : "";
+            current_line_text = (dvp.first_line_num >= 0) ? (int_to_str_leading_zeros(dvp.first_line_num + current_line_number++, line_num_str_length) + ": ") : "";
         }
 
-        char byteTextValue[32];
-        memset(byteTextValue, 0, sizeof(byteTextValue));
+        char byte_text_value[32];
+        memset(byte_text_value, 0, sizeof(byte_text_value));
         if (dvp.base_system == data_visualization_params::base::hex)
-            sprintf_s(byteTextValue, "%x", m_working_buffer[i]);
+            sprintf_s(byte_text_value, "%x", m_working_buffer[i]);
         else if (dvp.base_system == data_visualization_params::base::dec)
-            sprintf_s(byteTextValue, "%d", m_working_buffer[i]);
+            sprintf_s(byte_text_value, "%d", m_working_buffer[i]);
         else if (dvp.base_system == data_visualization_params::base::oct)
-            sprintf_s(byteTextValue, "%o", m_working_buffer[i]);
+            sprintf_s(byte_text_value, "%o", m_working_buffer[i]);
         else if (dvp.base_system == data_visualization_params::base::bin)
-            sprintf_s(byteTextValue, "%s%s", get_half_byte_binary()[m_working_buffer[i] >> 4].c_str(), get_half_byte_binary()[m_working_buffer[i] & 0x0F].c_str());
+            sprintf_s(byte_text_value, "%s%s", get_half_byte_binary()[m_working_buffer[i] >> 4].c_str(), get_half_byte_binary()[m_working_buffer[i] & 0x0F].c_str());
 
-        std::string byteTextValueStr(byteTextValue);
+        std::string byte_text_valueStr(byte_text_value);
         // Add leading zeros to add up to length of 2 for HEX and length of 3 for DEC and OCT
         if(dvp.base_system == data_visualization_params::base::hex)
-            byteTextValueStr = std::string(2 - byteTextValueStr.length(), '0') + byteTextValueStr;
+            byte_text_valueStr = std::string(2 - byte_text_valueStr.length(), '0') + byte_text_valueStr;
         else if(dvp.base_system != data_visualization_params::base::bin)
-            byteTextValueStr = std::string(3 - byteTextValueStr.length(), '0') + byteTextValueStr;
+            byte_text_valueStr = std::string(3 - byte_text_valueStr.length(), '0') + byte_text_valueStr;
 
-        currentLineText += (dvp.spaces_between_bytes ? (itIsFirstByteInLine ? "" : " ") : "") + byteTextValueStr;
-        currentBytesOnLine++;
+        current_line_text += (dvp.spaces_between_bytes ? (it_is_first_byte_in_line ? "" : " ") : "") + byte_text_valueStr;
+        current_bytes_on_line++;
     }
 
     return result;
@@ -358,7 +358,7 @@ ez::protocol_serializer::byte_ptr_t protocol_serializer::get_field_pointer(const
     m_prealloc_metadata_itt = m_fields_metadata.find(name);
 
     if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-        printf("Protocol::getFieldFirstBytePointer. There is no field '%s'!\n", name.c_str());
+        printf("Protocol::get_field_first_byte_pointer. There is no field '%s'!\n", name.c_str());
         return nullptr;
     }
 
@@ -366,7 +366,7 @@ ez::protocol_serializer::byte_ptr_t protocol_serializer::get_field_pointer(const
     return m_working_buffer + field_init.first_byte_ind;
 }
 
-ez::protocol_serializer::result_code protocol_serializer::append_field(const field_init& field_init, bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code protocol_serializer::append_field(const field_init& field_init, bool preserve_internal_buffer_values)
 {
     if (m_fields_metadata.find(field_init.name) != m_fields_metadata.cend())
         return result_code::bad_input;
@@ -377,16 +377,16 @@ ez::protocol_serializer::result_code protocol_serializer::append_field(const fie
     if (field_init.vis_type == visualization_type::floating_point && field_init.bit_count != 32 && field_init.bit_count != 64)
         return result_code::not_applicable;
 
-    unsigned int firstBitIndex = 0;
+    unsigned int first_bit_index = 0;
     if (!m_fields.empty()) {
-        const field_metadata lastFieldMetadata = m_fields_metadata.at(m_fields.back());
-        firstBitIndex = lastFieldMetadata.first_bit_ind + lastFieldMetadata.bit_count;
+        const field_metadata last_field_metadata = m_fields_metadata.at(m_fields.back());
+        first_bit_index = last_field_metadata.first_bit_ind + last_field_metadata.bit_count;
     }
 
     m_fields.push_back(field_init.name);
-    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(firstBitIndex, field_init.bit_count, field_init.name, field_init.vis_type)));
+    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(first_bit_index, field_init.bit_count, field_init.name, field_init.vis_type)));
 
-    if (preserveInternalBufferValues)
+    if (preserve_internal_buffer_values)
         update_internal_buffer();
     else
         reallocate_internal_buffer();
@@ -394,21 +394,21 @@ ez::protocol_serializer::result_code protocol_serializer::append_field(const fie
     return result_code::ok;
 }
 
-ez::protocol_serializer::result_code protocol_serializer::append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code protocol_serializer::append_protocol(const protocol_serializer& other, bool preserve_internal_buffer_values)
 {
     for (fields_metadata_t::const_iterator itt = other.m_fields_metadata.cbegin(); itt != other.m_fields_metadata.cend(); ++itt)
         if (m_fields_metadata.find(itt->first) != m_fields_metadata.cend())
             return result_code::bad_input;
 
-    for (const std::string& fieldName : other.m_fields) {
-        const field_metadata& fieldMetadata = other.m_fields_metadata.find(fieldName)->second;
-        append_field(protocol_serializer::field_init{fieldMetadata.name, fieldMetadata.bit_count}, preserveInternalBufferValues);
+    for (const std::string& field_name : other.m_fields) {
+        const field_metadata& field_metadata = other.m_fields_metadata.find(field_name)->second;
+        append_field(protocol_serializer::field_init{field_metadata.name, field_metadata.bit_count}, preserve_internal_buffer_values);
     }
 
     return result_code::ok;
 }
 
-ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const std::string& name, bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const std::string& name, bool preserve_internal_buffer_values)
 {
     m_prealloc_metadata_itt = m_fields_metadata.find(name);
     if (m_prealloc_metadata_itt == m_fields_metadata.end())
@@ -419,7 +419,7 @@ ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const
             m_fields.erase(itt);
             m_fields_metadata.erase(name);
 
-            if (preserveInternalBufferValues)
+            if (preserve_internal_buffer_values)
                 update_internal_buffer();
             else
                 reallocate_internal_buffer();
@@ -431,7 +431,7 @@ ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const
     return result_code::ok;
 }
 
-ez::protocol_serializer::result_code protocol_serializer::remove_last_field(bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code protocol_serializer::remove_last_field(bool preserve_internal_buffer_values)
 {
     if (m_fields.empty())
         return result_code::not_applicable;
@@ -439,7 +439,7 @@ ez::protocol_serializer::result_code protocol_serializer::remove_last_field(bool
     m_fields_metadata.erase(m_fields_metadata.find(m_fields.back()));
     m_fields.pop_back();
 
-    if (preserveInternalBufferValues)
+    if (preserve_internal_buffer_values)
         update_internal_buffer();
     else
         reallocate_internal_buffer();
@@ -509,7 +509,7 @@ void protocol_serializer::shift_left(byte_ptr_t buf, int len, unsigned char shif
 
 const std::map<unsigned char, unsigned char>& protocol_serializer::get_right_masks()
 {
-    static const std::map<unsigned char, unsigned char> rightMasks{
+    static const std::map<unsigned char, unsigned char> right_masks{
         {0,0x00},
         {1,0x01},
         {2,0x03},
@@ -519,12 +519,12 @@ const std::map<unsigned char, unsigned char>& protocol_serializer::get_right_mas
         {6,0x3F},
         {7,0x7F}
     };
-    return rightMasks;
+    return right_masks;
 }
 
 const std::map<unsigned char, unsigned char>& protocol_serializer::get_left_masks()
 {
-    static const std::map<unsigned char, unsigned char> leftMasks{
+    static const std::map<unsigned char, unsigned char> left_masks{
         {0,0x00},
         {1,0x80},
         {2,0xC0},
@@ -534,30 +534,30 @@ const std::map<unsigned char, unsigned char>& protocol_serializer::get_left_mask
         {6,0xFC},
         {7,0xFE}
     };
-    return leftMasks;
+    return left_masks;
 }
 
 const std::vector<std::string>& protocol_serializer::get_half_byte_binary()
 {
-    static const std::vector<std::string> halfByteBinary = {
+    static const std::vector<std::string> half_byte_binary = {
         "0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111",
         "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"
     };
-    return halfByteBinary;
+    return half_byte_binary;
 }
 
 std::string ez::protocol_serializer::int_to_str_leading_zeros(int value, size_t length) const
 {
-    std::string intString = std::to_string(value);
-    int64_t numLeadingZeros = length - static_cast<int64_t>(intString.length());
+    std::string int_string = std::to_string(value);
+    int64_t num_leading_zeros = length - static_cast<int64_t>(int_string.length());
 
     if (value < 0)
-        numLeadingZeros -= 1;
+        num_leading_zeros -= 1;
 
-    if (numLeadingZeros > 0)
-        intString = std::string(numLeadingZeros, '0') + intString;
+    if (num_leading_zeros > 0)
+        int_string = std::string(num_leading_zeros, '0') + int_string;
 
-    return intString;
+    return int_string;
 }
 
 void protocol_serializer::reallocate_internal_buffer()
@@ -569,8 +569,8 @@ void protocol_serializer::reallocate_internal_buffer()
         return;
 
     // Reallocate internal buffer
-    const field_metadata& lastFieldMetadata = m_fields_metadata.find(m_fields.back())->second;
-    const unsigned int bits = lastFieldMetadata.first_bit_ind + lastFieldMetadata.bit_count;
+    const field_metadata& last_field_metadata = m_fields_metadata.find(m_fields.back())->second;
+    const unsigned int bits = last_field_metadata.first_bit_ind + last_field_metadata.bit_count;
     m_internal_buffer_length = bits / 8 + ((bits % 8) ? 1 : 0);
     m_internal_buffer.reset(new unsigned char[m_internal_buffer_length]);
     memset(m_internal_buffer.get(), 0, m_internal_buffer_length);
@@ -581,19 +581,19 @@ void protocol_serializer::reallocate_internal_buffer()
 void protocol_serializer::update_internal_buffer()
 {
     // Create a copy of current internal buffer
-    const unsigned int oldBufferLength = m_internal_buffer_length;
-    std::unique_ptr<unsigned char[]> oldBufferCopy;
+    const unsigned int old_buffer_length = m_internal_buffer_length;
+    std::unique_ptr<unsigned char[]> old_buffer_copy;
     if (m_internal_buffer != nullptr) {
-        oldBufferCopy.reset(new unsigned char[oldBufferLength]);
-        memcpy(oldBufferCopy.get(), m_internal_buffer.get(), oldBufferLength);
+        old_buffer_copy.reset(new unsigned char[old_buffer_length]);
+        memcpy(old_buffer_copy.get(), m_internal_buffer.get(), old_buffer_length);
     }
 
     // Reallocate internal buffer
     reallocate_internal_buffer();
 
     // Fill with old values
-    if (m_internal_buffer_length > 0 && oldBufferLength > 0)
-        memcpy(m_internal_buffer.get(), oldBufferCopy.get(), std::min(m_internal_buffer_length, oldBufferLength));
+    if (m_internal_buffer_length > 0 && old_buffer_length > 0)
+        memcpy(m_internal_buffer.get(), old_buffer_copy.get(), std::min(m_internal_buffer_length, old_buffer_length));
 }
 
 protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const std::string& name, const visualization_type vis_type)
@@ -604,8 +604,8 @@ protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit
     this->bit_count = bit_count;
     bytes_count = bit_count / 8 + ((bit_count % 8) ? 1 : 0);
     first_byte_ind = first_bit_ind / 8;
-    unsigned int lastByteInd = (first_bit_ind + bit_count - 1) / 8;
-    touched_bytes_count = lastByteInd - first_byte_ind + 1;
+    unsigned int last_byte_ind = (first_bit_ind + bit_count - 1) / 8;
+    touched_bytes_count = last_byte_ind - first_byte_ind + 1;
     left_spacing = first_bit_ind % 8;
     right_spacing = (8 - (first_bit_ind + bit_count) % 8) % 8;
 
