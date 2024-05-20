@@ -1,5 +1,6 @@
 #include "creator_widget.h"
 #include <QLabel>
+#include <QMessageBox>
 
 CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     : QWidget(parent)
@@ -95,6 +96,35 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
     m_assocTypeCombo->addItem("SIGNED_INTEGER", static_cast<int>(ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER));
     m_assocTypeCombo->addItem("UNSIGNED_INTEGER", static_cast<int>(ez::protocol_serializer::ASSOCIATED_TYPE::UNSIGNED_INTEGER));
     m_assocTypeCombo->addItem("FLOATING_POINT", static_cast<int>(ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT));
+    m_assocTypeCombo->setCurrentIndex(0);
+    m_assocTypeCombo->setProperty("prev_index", m_assocTypeCombo->currentIndex());
+
+    const auto& dropAssociatedType = [this](int indexToDropTo)
+    {
+        QMessageBox::warning(m_assocTypeCombo, "Not applicable", "Associated floating point type is only available for fields with length of 32 (float) or 64(double) bits!", QMessageBox::Ok);
+        m_assocTypeCombo->blockSignals(true);
+        m_assocTypeCombo->setCurrentIndex(indexToDropTo);
+        m_assocTypeCombo->setProperty("prev_index", m_assocTypeCombo->currentIndex());
+        m_assocTypeCombo->blockSignals(false);
+    };
+
+    connect(m_assocTypeCombo, &QComboBox::currentIndexChanged, this, [this, dropAssociatedType](int index)
+    {
+        using assoc_type = ez::protocol_serializer::ASSOCIATED_TYPE;
+        if (static_cast<assoc_type>(index) == assoc_type::FLOATING_POINT && m_bitCountSpinbox->value() != 32 && m_bitCountSpinbox->value() != 64) {
+            dropAssociatedType(m_assocTypeCombo->property("prev_index").toInt());
+            return;
+        }
+
+        m_assocTypeCombo->setProperty("prev_index", m_assocTypeCombo->currentIndex());
+    });
+
+    connect(m_bitCountSpinbox, &QSpinBox::valueChanged, this, [this, dropAssociatedType](int value)
+    {
+        using assoc_type = ez::protocol_serializer::ASSOCIATED_TYPE;
+        if (static_cast<assoc_type>(m_assocTypeCombo->currentIndex()) == assoc_type::FLOATING_POINT && value != 32 && value != 64)
+            dropAssociatedType(0);
+    });
 
     QHBoxLayout* layout = new QHBoxLayout(this);
     layout->addWidget(new QLabel("{"));
