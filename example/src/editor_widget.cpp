@@ -56,16 +56,16 @@ void EditorWidget::regenerate()
     // Go through every bit of every field
     for (const std::string& fieldName : m_ps->get_fields_list()) {
         const ez::protocol_serializer::field_metadata& fieldMetadata = m_ps->get_field_metadata(fieldName);
-        unsigned int currentWordInd = fieldMetadata.firstBitInd / 16;
-        unsigned int currentBitInd = fieldMetadata.firstBitInd;
-        unsigned int firstBitIndInsideCurrentWord = fieldMetadata.firstBitInd;
+        unsigned int currentWordInd = fieldMetadata.first_bit_ind / 16;
+        unsigned int currentBitInd = fieldMetadata.first_bit_ind;
+        unsigned int firstBitIndInsideCurrentWord = fieldMetadata.first_bit_ind;
         EditorFieldWidget* mainFieldWidget = nullptr;
         while (true) {
             bool fieldWidgetEndsHere = false;
             bool fieldEndsHere = false;
 
             // It was the last bit of current field
-            if (currentBitInd >= fieldMetadata.firstBitInd + fieldMetadata.bit_count - 1) {
+            if (currentBitInd >= fieldMetadata.first_bit_ind + fieldMetadata.bit_count - 1) {
                 fieldWidgetEndsHere = true;
                 fieldEndsHere = true;
             }

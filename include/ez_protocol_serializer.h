@@ -27,6 +27,14 @@ public:
         floating_point
     };
 
+    enum class result_code
+    {
+        ok,
+        bad_input,
+        not_applicable,
+        field_not_found
+    };
+
     struct field_init
     {
         std::string name;
@@ -104,13 +112,13 @@ public:
     protocol_serializer& operator=(protocol_serializer&& other) noexcept;
 
     // Protocol description
-    bool           append_field(const field_init& field_init, bool preserveInternalBufferValues = true);
-    bool           append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
-    void           remove_field(const std::string& name, bool preserveInternalBufferValues = true);
-    void           remove_last_field(bool preserveInternalBufferValues = true);
-    void           clear_protocol();
-    fields_list_t  get_fields_list() const;
-    field_metadata get_field_metadata(const std::string& name) const;
+    result_code     append_field(const field_init& field_init, bool preserveInternalBufferValues = true);
+    result_code     append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
+    result_code     remove_field(const std::string& name, bool preserveInternalBufferValues = true);
+    result_code     remove_last_field(bool preserveInternalBufferValues = true);
+    result_code     clear_protocol();
+    fields_list_t   get_fields_list() const;
+    field_metadata  get_field_metadata(const std::string& name) const;
 
     // Byte order for multi-byte integers
     void set_is_little_endian(const bool isLittleEndian);
@@ -133,171 +141,165 @@ public:
     
     // Reading/writing
     template<class T>
-    void write(const std::string& name, const T& value, std::string* errorString = nullptr)
+    result_code write(const std::string& name, const T& value)
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
-        if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-            if (errorString != nullptr)
-                *errorString = format_string("Protocol::setFieldValue. There is no field '%s'!\n", name.c_str());
-            return;
-        }
-        _write(m_prealloc_metadata_itt->second, value, errorString);
+        if (m_prealloc_metadata_itt == m_fields_metadata.cend())
+            return result_code::field_not_found;
+
+        return _write(m_prealloc_metadata_itt->second, value);
     }
 
     template<class T>
-    void writeGhost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T& value, std::string* errorString = nullptr)
+    result_code write_ghost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T& value)
     {
-        _write(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), value, errorString);
+        return _write(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), value);
     }
 
     template<class T, size_t N>
-    void writeArray(const std::string& name, const T array[N], std::string* errorString = nullptr)
+    result_code write_array(const std::string& name, const T array[N])
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
-        if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-            if (errorString != nullptr)
-                *errorString = format_string("Protocol::setFieldValueAsArray.There is no field '%s'!\n", name.c_str());
-            return;
-        }
+        if (m_prealloc_metadata_itt == m_fields_metadata.cend())
+            return result_code::field_not_found;
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bit_count % N) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
-                                                                           name.c_str(), field_init.bit_count, N);
-            return;
-        }
+        if (field_init.bit_count % N)
+            return result_code::not_applicable;
 
         const unsigned char ghostFieldLength = field_init.bit_count / N;
-
-        std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
-            if (localerror.length()) break;
-
-            unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
-            setGhost(first_bit_ind, ghostFieldLength, array[i], &localerror);
+            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
+            const result_code result = write_ghost(first_bit_ind, ghostFieldLength, array[i], &localResult);
+            if (result != result_code::ok)
+                return result;
         }
-        if (localerror.length())
-            *errorString = localerror;
+
+        return result_code::ok;
     }
 
     template<class T, size_t N>
-    void writeGhostArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T array[N], std::string* errorString = nullptr)
+    result_code write_ghost_array(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T array[N])
     {
-        if (fieldBitCount % N) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!",
-                                                                           fieldBitCount, N);
-            return;
-        }
+        if (fieldBitCount % N)
+            return result_code::not_applicable;
 
         const unsigned char ghostFieldLength = fieldBitCount / N;
-
-        std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
-            if (localerror.length()) break;
-
-            unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
-            setGhost(first_bit_ind, ghostFieldLength, array[i], &localerror);
+            const unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
+            const result_code result = set_ghost(first_bit_ind, ghostFieldLength, array[i]);
+            if (result != result_code::ok)
+                return result;
         }
-        if (localerror.length())
-            *errorString = localerror;
+        
+        return result_code::ok;
     }
 
     template<class T>
-    T read(const std::string& name, std::string* errorString = nullptr) const
+    T read(const std::string& name, result_code* result = nullptr) const
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-            if (errorString != nullptr)
-                *errorString = format_string("Protocol::readFieldValue. There is no field '%s'!\n", name.c_str());
+            if (result != nullptr)
+                *result = result_code::field_not_found;
             return T{};
         }
-        return _read<T>(m_prealloc_metadata_itt->second, errorString);
+        return _read<T>(m_prealloc_metadata_itt->second, result);
     }
 
     template<class T>
-    T readGhost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, std::string* errorString = nullptr) const
+    T read_ghost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, result_code* result = nullptr) const
     {
-        return _read<T>(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), errorString);
+        return _read<T>(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), result);
     }
 
     template<class T, size_t N>
-    void readArray(const std::string& name, T array[N], std::string* errorString = nullptr) const
+    void read_array(const std::string& name, T array[N], result_code* result = nullptr) const
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-            if (errorString != nullptr)
-                *errorString = format_string("Protocol::readFieldValueAsArray. There is no field '%s'!\n", name.c_str());
+            if (result != nullptr)
+                *result = result_code::field_not_found;
             return;
         }
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
         if (field_init.bit_count % N) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
-                                                                           name.c_str(), field_init.bit_count, N);
+            if (result != nullptr)
+                *result = result_code::not_applicable;
             return;
         }
 
         const unsigned char ghostFieldLength = field_init.bit_count / N;
-
-        std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
-            if (localerror.length()) break;
-
-            unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
-            array[i] = readGhost<T>(first_bit_ind, ghostFieldLength, &localerror);
+            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
+            result_code localResult = result_code::ok;
+            array[i] = read_ghost<T>(first_bit_ind, ghostFieldLength, &localResult);
+            if (localResult != result_code::ok) {
+                if (result != nullptr)
+                    *result = localResult;
+                return;
+            }
         }
-        if (localerror.length())
-            *errorString = localerror;
+
+        if (result != nullptr)
+            *result = result_code::ok;
     }
 
     template<class T, size_t N>
-    void readGhostArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, T array[N], std::string* errorString = nullptr)
+    void read_ghost_array(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, T array[N], result_code* result = nullptr)
     {
         if (fieldBitCount % N) {
-            if (errorString != nullptr)
-                *errorString = format_string("Protocol::readFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!", fieldBitCount, N);
+            if (result != nullptr)
+                *result = result_code::not_applicable;
             return;
         }
 
         const unsigned char ghostFieldLength = fieldBitCount / N;
-
-        std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
-            if (localerror.length()) break;
-
-            unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
-            array[i] = readGhost<T>(first_bit_ind, ghostFieldLength, &localerror);
+            const unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
+            result_code localResult = result_code::ok;
+            array[i] = read_ghost<T>(first_bit_ind, ghostFieldLength, &localResult);
+            if (localResult != result_code::ok) {
+                if (result != nullptr)
+                    *result = localResult;
+                return;
+            }
         }
-        if (localerror.length())
-            *errorString = localerror;
+
+        if (result != nullptr)
+            *result = result_code::ok;
     }
 
 private:
     template<class T>
-    void _write(const field_metadata& fieldMetadata, const T& value, std::string* errorString = nullptr)
+    void _write(const field_metadata& fieldMetadata, const T& value, result_code* result = nullptr)
     {
-        static_assert(std::is_arithmetic<T>(), "Protocol::setFieldValue. T should be arithmetic!");
+        static_assert(std::is_arithmetic<T>(), "T should be arithmetic!");
 
         if (m_is_little_endian && fieldMetadata.bit_count > 8 && fieldMetadata.bit_count % 8) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
+            if (result != nullptr)
+                *result = result_code::not_applicable;
             return;
         }
 
         if (std::is_floating_point<T>::value) {
             if (fieldMetadata.bit_count != 32 && fieldMetadata.bit_count != 64) {
-                if (errorString != nullptr)
-                    *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
+                if (result != nullptr)
+                    *result = result_code::not_applicable;
                 return;
             }
         }
 
         if (m_working_buffer == nullptr) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Current buffer (buffer_source::%s) == nullptr!", m_buffer_source == buffer_source::external ? "external" : "internal");
+            if (result != nullptr)
+                *result = result_code::bad_input;
             return;
         }
 
         if (fieldMetadata.bit_count > 64) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
+            if (result != nullptr)
+                *result = result_code::not_applicable;
             return;
         }
 
@@ -341,31 +343,38 @@ private:
             m_working_buffer[fieldMetadata.first_byte_ind + i] &= ~mask;
             m_working_buffer[fieldMetadata.first_byte_ind + i] |= m_prealloc_final_bytes[i] & mask;
         }
+
+        if (result != nullptr)
+            *result = result_code::ok;
     }
 
     template<class T>
-    T _read(const field_metadata& fieldMetadata, std::string* errorString = nullptr) const
+    T _read(const field_metadata& fieldMetadata, result_code* result = nullptr) const
     {
-        static_assert(std::is_arithmetic<T>(), "Protocol::readFieldValue. T should be arithmetic!");
+        static_assert(std::is_arithmetic<T>(), "T should be arithmetic!");
 
         if (m_is_little_endian && fieldMetadata.bit_count > 8 && fieldMetadata.bit_count % 8) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
+            if (result != nullptr)
+                *result = result_code::not_applicable;
             return T{};
         }
         if (std::is_floating_point<T>::value) {
             if (fieldMetadata.bit_count != 32 && fieldMetadata.bit_count != 64) {
-                if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
+                if (result != nullptr)
+                    *result = result_code::not_applicable;
                 return T{};
             }
         }
 
         if (m_working_buffer == nullptr) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Current buffer (buffer_source::%s) == nullptr!", m_buffer_source == buffer_source::external ? "external" : "internal");
+            if (result != nullptr)
+                *result = result_code::bad_input;
             return T{};
         }
 
         if (fieldMetadata.bit_count > 64) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
+            if (result != nullptr)
+                *result = result_code::not_applicable;
             return T{};
         }
 
@@ -418,6 +427,9 @@ private:
                 }
             }
         }
+
+        if (result != nullptr)
+            *result = result_code::ok;
 
         return *reinterpret_cast<T*>(m_prealloc_final_bytes);
     }

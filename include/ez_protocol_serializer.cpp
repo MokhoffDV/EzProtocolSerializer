@@ -150,7 +150,7 @@ ez::protocol_serializer::field_metadata ez::protocol_serializer::get_field_metad
 std::string protocol_serializer::get_visualization(const visualization_params& vp) const
 {
     if (m_fields.empty())
-        return "Protocol::getVisualization(). Protocol is empty";
+        return "";
 
     const_cast<visualization_params&>(vp).horizontal_bit_margin = vp.horizontal_bit_margin == 0 ? 1 : vp.horizontal_bit_margin;
     const_cast<visualization_params&>(vp).name_lines_count = vp.name_lines_count == 0 ? 1 : vp.name_lines_count;
@@ -301,7 +301,7 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
 std::string protocol_serializer::get_data_visualization(const data_visualization_params& dvp) const
 {
     if (m_fields.empty())
-        return "Protocol::getDataVisualization(). Protocol is empty";
+        return "";
 
     const_cast<data_visualization_params&>(dvp).bytes_per_line = dvp.bytes_per_line == 0 ? 1 : dvp.bytes_per_line;
     const std::string firstLineNumStr = std::to_string(dvp.first_line_num);
@@ -366,19 +366,16 @@ ez::protocol_serializer::byte_ptr_t protocol_serializer::get_field_pointer(const
     return m_working_buffer + field_init.first_byte_ind;
 }
 
-bool protocol_serializer::append_field(const field_init& field_init, bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code protocol_serializer::append_field(const field_init& field_init, bool preserveInternalBufferValues)
 {
     if (m_fields_metadata.find(field_init.name) != m_fields_metadata.cend())
-        return false;
+        return result_code::bad_input;
 
-    if (field_init.bit_count == 0)
-        return false;
-
-    if (field_init.name.empty())
-        return false;
+    if (field_init.bit_count == 0 || field_init.name.empty())
+        return result_code::bad_input;
 
     if (field_init.vis_type == visualization_type::floating_point && field_init.bit_count != 32 && field_init.bit_count != 64)
-        return false;
+        return result_code::not_applicable;
 
     unsigned int firstBitIndex = 0;
     if (!m_fields.empty()) {
@@ -394,28 +391,28 @@ bool protocol_serializer::append_field(const field_init& field_init, bool preser
     else
         reallocate_internal_buffer();
 
-    return true;
+    return result_code::ok;
 }
 
-bool protocol_serializer::append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code protocol_serializer::append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues)
 {
     for (fields_metadata_t::const_iterator itt = other.m_fields_metadata.cbegin(); itt != other.m_fields_metadata.cend(); ++itt)
         if (m_fields_metadata.find(itt->first) != m_fields_metadata.cend())
-            return false;
+            return result_code::bad_input;
 
     for (const std::string& fieldName : other.m_fields) {
         const field_metadata& fieldMetadata = other.m_fields_metadata.find(fieldName)->second;
         append_field(protocol_serializer::field_init{fieldMetadata.name, fieldMetadata.bit_count}, preserveInternalBufferValues);
     }
 
-    return true;
+    return result_code::ok;
 }
 
-void ez::protocol_serializer::remove_field(const std::string& name, bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const std::string& name, bool preserveInternalBufferValues)
 {
     m_prealloc_metadata_itt = m_fields_metadata.find(name);
     if (m_prealloc_metadata_itt == m_fields_metadata.end())
-        return;
+        return result_code::field_not_found;
 
     for (auto itt = m_fields.begin(); itt != m_fields.end(); ++itt) {
         if (*itt == name) {
@@ -427,15 +424,17 @@ void ez::protocol_serializer::remove_field(const std::string& name, bool preserv
             else
                 reallocate_internal_buffer();
 
-            return;
+            return result_code::ok;
         }
     }
+
+    return result_code::ok;
 }
 
-void protocol_serializer::remove_last_field(bool preserveInternalBufferValues)
+ez::protocol_serializer::result_code protocol_serializer::remove_last_field(bool preserveInternalBufferValues)
 {
     if (m_fields.empty())
-        return;
+        return result_code::not_applicable;
 
     m_fields_metadata.erase(m_fields_metadata.find(m_fields.back()));
     m_fields.pop_back();
@@ -444,17 +443,21 @@ void protocol_serializer::remove_last_field(bool preserveInternalBufferValues)
         update_internal_buffer();
     else
         reallocate_internal_buffer();
+
+    return result_code::ok;
 }
 
-void protocol_serializer::clear_protocol()
+ez::protocol_serializer::result_code protocol_serializer::clear_protocol()
 {
     if (m_fields.empty())
-        return;
+        return result_code::not_applicable;
 
     m_fields.clear();
     m_fields_metadata.clear();
 
     reallocate_internal_buffer();
+
+    return result_code::ok;
 }
 
 void protocol_serializer::clear_working_buffer()
