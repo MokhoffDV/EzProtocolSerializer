@@ -34,7 +34,6 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
             memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->get_working_buffer(), prevWorkingBufferLength);
         }
         m_ps->clear_protocol();
-        m_ps->clear_working_buffer();
 
         bool errorOccured = false;
         for (int i = 0; i < m_fieldsLayout->count() - 1; ++i) {
@@ -49,10 +48,8 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
             }
         }
 
-        if (errorOccured) {
+        if (errorOccured)
             m_ps->clear_protocol();
-            m_ps->clear_working_buffer();
-        }
 
         // Check new length, copy old values if possible
         const unsigned int newWorkingBufferLength = m_ps->get_internal_buffer_length();
@@ -91,15 +88,18 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
     , m_visTypeCombo(new QComboBox())
 {
     m_nameEdit->setPlaceholderText("Field name...");
+    m_nameEdit->setToolTip("Field name");
     m_bitCountSpinbox->setRange(1, 32768);
     m_bitCountSpinbox->setValue(8);
+    m_bitCountSpinbox->setToolTip("Bit count");
     m_visTypeCombo->addItem("signed_integer", static_cast<int>(ez::protocol_serializer::visualization_type::signed_integer));
     m_visTypeCombo->addItem("unsigned_integer", static_cast<int>(ez::protocol_serializer::visualization_type::unsigned_integer));
     m_visTypeCombo->addItem("floating_point", static_cast<int>(ez::protocol_serializer::visualization_type::floating_point));
     m_visTypeCombo->setCurrentIndex(0);
     m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
+    m_visTypeCombo->setToolTip("Visualization type");
 
-    const auto& dropvis_type = [this](int indexToDropTo)
+    const auto& dropVisType = [this](int indexToDropTo)
     {
         QMessageBox::warning(m_visTypeCombo, "Not applicable", "'floating point' visualization type is only available for fields with length of 32 (float) or 64(double) bits!", QMessageBox::Ok);
         m_visTypeCombo->blockSignals(true);
@@ -108,22 +108,22 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
         m_visTypeCombo->blockSignals(false);
     };
 
-    connect(m_visTypeCombo, &QComboBox::currentIndexChanged, this, [this, dropvis_type](int index)
+    connect(m_visTypeCombo, &QComboBox::currentIndexChanged, this, [this, dropVisType](int index)
     {
         using vis_type = ez::protocol_serializer::visualization_type;
         if (static_cast<vis_type>(index) == vis_type::floating_point && m_bitCountSpinbox->value() != 32 && m_bitCountSpinbox->value() != 64) {
-            dropvis_type(m_visTypeCombo->property("prev_index").toInt());
+            dropVisType(m_visTypeCombo->property("prev_index").toInt());
             return;
         }
 
         m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
     });
 
-    connect(m_bitCountSpinbox, &QSpinBox::valueChanged, this, [this, dropvis_type](int value)
+    connect(m_bitCountSpinbox, &QSpinBox::valueChanged, this, [this, dropVisType](int value)
     {
         using vis_type = ez::protocol_serializer::visualization_type;
         if (static_cast<vis_type>(m_visTypeCombo->currentIndex()) == vis_type::floating_point && value != 32 && value != 64)
-            dropvis_type(0);
+            dropVisType(0);
     });
 
     QHBoxLayout* layout = new QHBoxLayout(this);
