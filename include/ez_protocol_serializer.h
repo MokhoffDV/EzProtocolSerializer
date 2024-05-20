@@ -200,8 +200,7 @@ public:
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-            if (result != nullptr)
-                *result = result_code::field_not_found;
+            set_result(result, result_code::field_not_found);
             return T{};
         }
         return _read<T>(m_prealloc_metadata_itt->second, result);
@@ -218,15 +217,13 @@ public:
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
-            if (result != nullptr)
-                *result = result_code::field_not_found;
+            set_result(result, result_code::field_not_found);
             return;
         }
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
         if (field_init.bit_count % N) {
-            if (result != nullptr)
-                *result = result_code::not_applicable;
+            set_result(result, result_code::not_applicable);
             return;
         }
 
@@ -236,22 +233,19 @@ public:
             result_code local_result = result_code::ok;
             array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
             if (local_result != result_code::ok) {
-                if (result != nullptr)
-                    *result = local_result;
+                set_result(result, local_result);
                 return;
             }
         }
 
-        if (result != nullptr)
-            *result = result_code::ok;
+        set_result(result, result_code::ok);
     }
 
     template<class T, size_t N>
     void read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, T array[N], result_code* result = nullptr)
     {
         if (field_bit_count % N) {
-            if (result != nullptr)
-                *result = result_code::not_applicable;
+            set_result(result, result_code::not_applicable);
             return;
         }
 
@@ -261,14 +255,12 @@ public:
             result_code local_result = result_code::ok;
             array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
             if (local_result != result_code::ok) {
-                if (result != nullptr)
-                    *result = local_result;
+                set_result(result, local_result);
                 return;
             }
         }
 
-        if (result != nullptr)
-            *result = result_code::ok;
+        set_result(result, result_code::ok);
     }
 
 private:
@@ -340,27 +332,23 @@ private:
         static_assert(std::is_arithmetic<T>(), "T should be arithmetic!");
 
         if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8) {
-            if (result != nullptr)
-                *result = result_code::not_applicable;
+            set_result(result, result_code::not_applicable);
             return T{};
         }
         if (std::is_floating_point<T>::value) {
             if (field_metadata.bit_count != 32 && field_metadata.bit_count != 64) {
-                if (result != nullptr)
-                    *result = result_code::not_applicable;
+                set_result(result, result_code::not_applicable);
                 return T{};
             }
         }
 
         if (m_working_buffer == nullptr) {
-            if (result != nullptr)
-                *result = result_code::bad_input;
+            set_result(result, result_code::bad_input);
             return T{};
         }
 
         if (field_metadata.bit_count > 64) {
-            if (result != nullptr)
-                *result = result_code::not_applicable;
+            set_result(result, result_code::not_applicable);
             return T{};
         }
 
@@ -414,8 +402,7 @@ private:
             }
         }
 
-        if (result != nullptr)
-            *result = result_code::ok;
+        set_result(result, result_code::ok);
 
         return *reinterpret_cast<T*>(m_prealloc_final_bytes);
     }
@@ -450,6 +437,8 @@ private:
 
     void reallocate_internal_buffer();
     void update_internal_buffer();
+
+    void set_result(result_code* result_ptr, const result_code code) const;
 
     internal_buffer_ptr_t m_internal_buffer;
     unsigned int m_internal_buffer_length = 0;

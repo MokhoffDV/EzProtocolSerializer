@@ -596,6 +596,13 @@ void protocol_serializer::update_internal_buffer()
         memcpy(m_internal_buffer.get(), old_buffer_copy.get(), std::min(m_internal_buffer_length, old_buffer_length));
 }
 
+void ez::protocol_serializer::set_result(result_code* result_ptr, const result_code code) const
+{
+    if (result_ptr == nullptr)
+        return;
+    *result_ptr = code;
+}
+
 protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const std::string& name, const visualization_type vis_type)
 {
     this->vis_type = vis_type;
