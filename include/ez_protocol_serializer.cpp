@@ -14,11 +14,11 @@ protocol_serializer::protocol_serializer(const bool isLittleEndian, const protoc
     }
 }
 
-protocol_serializer::protocol_serializer(const std::vector<field>& fields, const bool isLittleEndian, const buffer_source bufferSource, unsigned char* const externalBuffer)
+protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool isLittleEndian, const buffer_source bufferSource, unsigned char* const externalBuffer)
     : protocol_serializer(isLittleEndian, bufferSource, externalBuffer)
 {
-    for (const field& field : fields) {
-        if (!append_field(field)) {
+    for (const field_init& field_init : fields) {
+        if (!append_field(field_init)) {
             clear_protocol();
             return;
         }
@@ -361,22 +361,22 @@ unsigned char* protocol_serializer::get_field_pointer(const std::string& name) c
         return nullptr;
     }
 
-    const field_metadata& field = m_prealloc_metadata_itt->second;
-    return m_working_buffer + field.firstByteInd;
+    const field_metadata& field_init = m_prealloc_metadata_itt->second;
+    return m_working_buffer + field_init.firstByteInd;
 }
 
-bool protocol_serializer::append_field(const field& field, bool preserveInternalBufferValues)
+bool protocol_serializer::append_field(const field_init& field_init, bool preserveInternalBufferValues)
 {
-    if (m_fields_metadata.find(field.name) != m_fields_metadata.cend())
+    if (m_fields_metadata.find(field_init.name) != m_fields_metadata.cend())
         return false;
 
-    if (field.bitCount == 0)
+    if (field_init.bitCount == 0)
         return false;
 
-    if (field.name.empty())
+    if (field_init.name.empty())
         return false;
 
-    if (field.associatedType == associated_type::floating_point && field.bitCount != 32 && field.bitCount != 64)
+    if (field_init.associatedType == associated_type::floating_point && field_init.bitCount != 32 && field_init.bitCount != 64)
         return false;
 
     unsigned int firstBitIndex = 0;
@@ -385,8 +385,8 @@ bool protocol_serializer::append_field(const field& field, bool preserveInternal
         firstBitIndex = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
     }
 
-    m_fields.push_back(field.name);
-    m_fields_metadata.insert(fields_metadata_t::value_type(field.name, field_metadata(firstBitIndex, field.bitCount, field.name, field.associatedType)));
+    m_fields.push_back(field_init.name);
+    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(firstBitIndex, field_init.bitCount, field_init.name, field_init.associatedType)));
 
     if (preserveInternalBufferValues)
         update_internal_buffer();
@@ -404,7 +404,7 @@ bool protocol_serializer::append_protocol(const protocol_serializer& other, bool
 
     for (const std::string& fieldName : other.m_fields) {
         const field_metadata& fieldMetadata = other.m_fields_metadata.find(fieldName)->second;
-        append_field(protocol_serializer::field{fieldMetadata.name, fieldMetadata.bitCount}, preserveInternalBufferValues);
+        append_field(protocol_serializer::field_init{fieldMetadata.name, fieldMetadata.bitCount}, preserveInternalBufferValues);
     }
 
     return true;

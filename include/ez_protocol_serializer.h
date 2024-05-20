@@ -27,7 +27,7 @@ public:
         floating_point
     };
 
-    struct field
+    struct field_init
     {
         std::string name;
         unsigned int bitCount;
@@ -50,41 +50,6 @@ public:
         associated_type associatedType;
     };
 
-    using fields_list_t = std::list<std::string>;
-    using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
-
-    protocol_serializer(const bool isLittleEndian = false,
-                        const buffer_source bufferSource = buffer_source::internal,
-                        unsigned char* const externalBuffer = nullptr);
-
-    protocol_serializer(const std::vector<field>& fields,
-                        const bool isLittleEndian = false,
-                        const buffer_source bufferSource = buffer_source::internal,
-                        unsigned char* const externalBuffer = nullptr);
-
-    protocol_serializer(const protocol_serializer& other);
-    protocol_serializer& operator=(const protocol_serializer& other);
-
-    protocol_serializer(protocol_serializer&& other) noexcept;
-    protocol_serializer& operator=(protocol_serializer&& other) noexcept;
-
-    void set_is_little_endian(const bool isLittleEndian);
-    bool get_is_little_endian() const;
-
-    void set_buffer_source(const buffer_source bufferSource);
-    buffer_source get_buffer_source() const;
-
-    const std::unique_ptr<unsigned char[]>& get_internal_buffer() const;
-    unsigned int get_internal_buffer_length() const;
-
-    unsigned char* get_external_buffer() const;
-    void set_external_buffer(unsigned char* const externalBuffer);
-
-    unsigned char* get_working_buffer() const;
-
-    fields_list_t get_fields_list() const;
-    field_metadata get_field_metadata(const std::string& name) const;
-
     struct visualization_params
     {
         visualization_params& set_draw_header(const bool draw) { this->draw_header = draw; return *this; }
@@ -98,7 +63,6 @@ public:
         unsigned int name_lines_count = 2;
         bool print_values = false;
     };
-    std::string get_visualization(const visualization_params& vp) const;
 
     struct data_visualization_params
     {
@@ -119,18 +83,54 @@ public:
         base base_system = base::hex;
         bool spaces_between_bytes = true;
     };
+
+    using fields_list_t = std::list<std::string>;
+    using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
+    using internal_buffer_ptr = std::unique_ptr<unsigned char[]>;
+
+    // Creation
+    protocol_serializer(const bool isLittleEndian = false,
+                        const buffer_source bufferSource = buffer_source::internal,
+                        unsigned char* const externalBuffer = nullptr);
+
+    protocol_serializer(const std::vector<field_init>& fields,
+                        const bool isLittleEndian = false,
+                        const buffer_source bufferSource = buffer_source::internal,
+                        unsigned char* const externalBuffer = nullptr);
+    protocol_serializer(const protocol_serializer& other);
+    protocol_serializer& operator=(const protocol_serializer& other);
+    protocol_serializer(protocol_serializer&& other) noexcept;
+    protocol_serializer& operator=(protocol_serializer&& other) noexcept;
+
+    // Protocol description
+    bool           append_field(const field_init& field_init, bool preserveInternalBufferValues = true);
+    bool           append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
+    void           remove_field(const std::string& name, bool preserveInternalBufferValues = true);
+    void           remove_last_field(bool preserveInternalBufferValues = true);
+    void           clear_protocol();
+    fields_list_t  get_fields_list() const;
+    field_metadata get_field_metadata(const std::string& name) const;
+
+    // Byte order for multi-byte integers
+    void set_is_little_endian(const bool isLittleEndian);
+    bool get_is_little_endian() const;
+
+    // Buffers
+    void                       set_buffer_source(const buffer_source bufferSource);
+    buffer_source              get_buffer_source() const;
+    const internal_buffer_ptr& get_internal_buffer() const;
+    unsigned int               get_internal_buffer_length() const;
+    unsigned char*             get_external_buffer() const;
+    void                       set_external_buffer(unsigned char* const externalBuffer);
+    unsigned char*             get_working_buffer() const;
+    void                       clear_working_buffer();
+    unsigned char*             get_field_pointer(const std::string& name) const;
+
+    // Visualization
+    std::string get_visualization(const visualization_params& vp) const;
     std::string get_data_visualization(const data_visualization_params& dvp) const;
-
-    unsigned char* get_field_pointer(const std::string& name) const;
-
-    bool append_field(const field& field, bool preserveInternalBufferValues = true);
-    bool append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
-
-    void remove_field(const std::string& name, bool preserveInternalBufferValues = true);
-    void remove_last_field(bool preserveInternalBufferValues = true);
-    void clear_protocol();
-    void clear_working_buffer();
-
+    
+    // Reading/writing
     template<class T>
     void write(const std::string& name, const T& value, std::string* errorString = nullptr)
     {
@@ -159,20 +159,20 @@ public:
             return;
         }
 
-        const field_metadata& field = m_prealloc_metadata_itt->second;
-        if (field.bitCount % N) {
+        const field_metadata& field_init = m_prealloc_metadata_itt->second;
+        if (field_init.bitCount % N) {
             if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
-                                                                           name.c_str(), field.bitCount, N);
+                                                                           name.c_str(), field_init.bitCount, N);
             return;
         }
 
-        const unsigned char ghostFieldLength = field.bitCount / N;
+        const unsigned char ghostFieldLength = field_init.bitCount / N;
 
         std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
             if (localerror.length()) break;
 
-            unsigned int firstBitInd = field.firstBitInd + i * ghostFieldLength;
+            unsigned int firstBitInd = field_init.firstBitInd + i * ghostFieldLength;
             setGhost(firstBitInd, ghostFieldLength, array[i], &localerror);
         }
         if (localerror.length())
@@ -229,20 +229,20 @@ public:
             return;
         }
 
-        const field_metadata& field = m_prealloc_metadata_itt->second;
-        if (field.bitCount % N) {
+        const field_metadata& field_init = m_prealloc_metadata_itt->second;
+        if (field_init.bitCount % N) {
             if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
-                                                                           name.c_str(), field.bitCount, N);
+                                                                           name.c_str(), field_init.bitCount, N);
             return;
         }
 
-        const unsigned char ghostFieldLength = field.bitCount / N;
+        const unsigned char ghostFieldLength = field_init.bitCount / N;
 
         std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
             if (localerror.length()) break;
 
-            unsigned int firstBitInd = field.firstBitInd + i * ghostFieldLength;
+            unsigned int firstBitInd = field_init.firstBitInd + i * ghostFieldLength;
             array[i] = readGhost<T>(firstBitInd, ghostFieldLength, &localerror);
         }
         if (localerror.length())
@@ -447,12 +447,12 @@ private:
 
     static const std::map<unsigned char, unsigned char>& get_right_masks();
     static const std::map<unsigned char, unsigned char>& get_left_masks();
-    static const std::vector<std::string>& get_half_byte_binary();
+    static const std::vector<std::string>&               get_half_byte_binary();
 
     void reallocate_internal_buffer();
     void update_internal_buffer();
 
-    std::unique_ptr<unsigned char[]> m_internal_buffer;
+    internal_buffer_ptr m_internal_buffer;
     unsigned int m_internal_buffer_length = 0;
     unsigned char* m_external_buffer = nullptr;
     unsigned char* m_working_buffer = nullptr;
