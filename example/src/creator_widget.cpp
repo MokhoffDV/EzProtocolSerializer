@@ -73,11 +73,12 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
     : QWidget(parent)
     , m_index(index)
     , m_nameEdit(new QLineEdit(QString("field_%1").arg(m_index)))
-    , m_bitCountEdit(new QLineEdit("8"))
+    , m_bitCountSpinbox(new QSpinBox())
     , m_assocTypeCombo(new QComboBox())
 {
     m_nameEdit->setPlaceholderText("Field name...");
-    m_bitCountEdit->setPlaceholderText("Field bit count...");
+    m_bitCountSpinbox->setRange(1, 32768);
+    m_bitCountSpinbox->setValue(8);
     m_assocTypeCombo->addItem("SIGNED_INTEGER", static_cast<int>(ez::protocol_serializer::ASSOCIATED_TYPE::SIGNED_INTEGER));
     m_assocTypeCombo->addItem("UNSIGNED_INTEGER", static_cast<int>(ez::protocol_serializer::ASSOCIATED_TYPE::UNSIGNED_INTEGER));
     m_assocTypeCombo->addItem("FLOATING_POINT", static_cast<int>(ez::protocol_serializer::ASSOCIATED_TYPE::FLOATING_POINT));
@@ -86,7 +87,7 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
     layout->addWidget(new QLabel("{"));
     layout->addWidget(m_nameEdit, 1);
     layout->addWidget(new QLabel(","));
-    layout->addWidget(m_bitCountEdit, 1);
+    layout->addWidget(m_bitCountSpinbox, 1);
     layout->addWidget(new QLabel(","));
     layout->addWidget(m_assocTypeCombo, 1);
     layout->addWidget(new QLabel("},"));
@@ -100,7 +101,7 @@ QString CreatorFieldWidget::getName() const
 
 unsigned int CreatorFieldWidget::getBitCount() const
 {
-    return m_bitCountEdit->text().toUInt();
+    return m_bitCountSpinbox->value();
 }
 
 ez::protocol_serializer::ASSOCIATED_TYPE CreatorFieldWidget::getAssocType() const

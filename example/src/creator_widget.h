@@ -5,6 +5,7 @@
 
 #include <QLineEdit>
 #include <QComboBox>
+#include <QSpinBox>
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -20,7 +21,7 @@ public:
 private:
     int m_index;
     QLineEdit* m_nameEdit;
-    QLineEdit* m_bitCountEdit;
+    QSpinBox* m_bitCountSpinbox;
     QComboBox* m_assocTypeCombo;
 };
 
