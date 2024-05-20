@@ -28,6 +28,16 @@ void UInt64Validator::fixup(QString& input) const
         input = QString::number(m_max);
 }
 
+qint64 UInt64Validator::min() const
+{
+    return 0;
+}
+
+qint64 UInt64Validator::max() const
+{
+    return m_max;
+}
+
 Int64Validator::Int64Validator(qint64 min, qint64 max, QObject* parent)
     : QValidator(parent), m_min(min), m_max(max)
 {
@@ -58,4 +68,14 @@ void Int64Validator::fixup(QString& input) const
         input = QString::number(m_min);
     else if (value > m_max)
         input = QString::number(m_max);
+}
+
+qint64 Int64Validator::min() const
+{
+    return m_min;
+}
+
+qint64 Int64Validator::max() const
+{
+    return m_max;
 }

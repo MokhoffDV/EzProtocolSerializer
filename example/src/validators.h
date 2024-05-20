@@ -11,7 +11,8 @@ public:
 
     State validate(QString& input, int& pos) const override;
     void fixup(QString& input) const override;
-
+    qint64 min() const;
+    qint64 max() const;
 private:
     quint64 m_max;
 };
@@ -23,6 +24,8 @@ public:
 
     State validate(QString& input, int& pos) const override;
     void fixup(QString& input) const override;
+    qint64 min() const;
+    qint64 max() const;
 
 private:
     qint64 m_min;
