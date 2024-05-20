@@ -6,17 +6,19 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     , m_addButton(new QPushButton("Add field"))
     , m_removeButton(new QPushButton("Remove field"))
     , m_submitButton(new QPushButton("Submit changes"))
-    , m_layout(new QVBoxLayout())
+    , m_isLittleEndianCheckbox(new QCheckBox("isLittleEndian"))
+    , m_fieldsLayout(new QVBoxLayout())
+    , m_mainLayout(new QVBoxLayout())
 {
     connect(m_addButton, &QPushButton::clicked, this, [this]()
     {
-        m_layout->insertWidget(m_layout->count() - 1, new CreatorFieldWidget(m_layout->count()));
+        m_fieldsLayout->insertWidget(m_fieldsLayout->count() - 1, new CreatorFieldWidget(m_fieldsLayout->count()));
     });
     connect(m_removeButton, &QPushButton::clicked, this, [this]()
     {
-        if (m_layout->count() <= 1)
+        if (m_fieldsLayout->count() <= 1)
             return;
-        m_layout->takeAt(m_layout->count() - 2)->widget()->deleteLater();
+        m_fieldsLayout->takeAt(m_fieldsLayout->count() - 2)->widget()->deleteLater();
     });
     connect(m_submitButton, &QPushButton::clicked, this, [this]()
     {
@@ -34,8 +36,8 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
         m_ps->clearWorkingBuffer();
 
         bool errorOccured = false;
-        for (int i = 0; i < m_layout->count() - 1; ++i) {
-            CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_layout->itemAt(i)->widget());
+        for (int i = 0; i < m_fieldsLayout->count() - 1; ++i) {
+            CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_fieldsLayout->itemAt(i)->widget());
             if (fieldItem == nullptr)
                 continue;
 
@@ -59,14 +61,25 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
         emit protocolSerializerChanged();
     });
 
+    connect(m_isLittleEndianCheckbox, &QCheckBox::stateChanged, this, [this](bool checked)
+    {
+        m_ps->setIsLittleEndian(checked);
+        emit protocolSerializerChanged();
+    });
+
     QHBoxLayout* buttonsLayout = new QHBoxLayout();
     buttonsLayout->addWidget(m_addButton);
     buttonsLayout->addWidget(m_removeButton);
     buttonsLayout->addSpacerItem(new QSpacerItem(0, 0));
     buttonsLayout->addWidget(m_submitButton);
-    m_layout->addLayout(buttonsLayout);
+    m_fieldsLayout->addLayout(buttonsLayout);
 
-    setLayout(m_layout);
+    m_mainLayout->addWidget(new QLabel("ez::protocol_serializer ps({"));
+    m_mainLayout->addLayout(m_fieldsLayout);
+    m_mainLayout->addWidget(m_isLittleEndianCheckbox);
+    m_mainLayout->addWidget(new QLabel("});"));
+    m_mainLayout->setContentsMargins(0, 0, 0, 0);
+    setLayout(m_mainLayout);
 }
 
 CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr */)

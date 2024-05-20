@@ -8,6 +8,8 @@ MainWindow::MainWindow(QWidget* parent /* = nullptr */)
     m_ui->creatorWidget->setProtocolSerializer(&m_ps);
     m_ui->editorWidget->setProtocolSerializer(&m_ps);
     m_ui->visualizerWidget->setProtocolSerializer(&m_ps);
+    m_ui->editorWidget->regenerate();
+    m_ui->visualizerWidget->visualize();
 
     connect(m_ui->creatorWidget, &CreatorWidget::protocolSerializerChanged, this, [this]()
     {

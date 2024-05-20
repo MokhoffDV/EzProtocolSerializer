@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QMap>
 #include <QVector>
+#include <QVBoxLayout>
 
 class EditorFieldWidget;
 class EditorWidget : public QWidget
@@ -22,6 +23,7 @@ signals:
 private:
     ez::protocol_serializer* m_ps;
     QMap<QString, EditorFieldWidget*> m_parentFieldWidgets;
+    QVBoxLayout* m_mainLayout;
 };
 
 class QLineEdit;

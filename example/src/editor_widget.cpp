@@ -14,7 +14,11 @@
 EditorWidget::EditorWidget(QWidget* parent)
     : QWidget(parent)
 {
-
+    m_mainLayout = new QVBoxLayout();
+    m_mainLayout->setStretch(1, 1);
+    m_mainLayout->setSpacing(0);
+    m_mainLayout->setContentsMargins(0, 0, 0, 0);
+    setLayout(m_mainLayout);
 }
 
 void EditorWidget::setProtocolSerializer(ez::protocol_serializer* ps)
@@ -24,12 +28,12 @@ void EditorWidget::setProtocolSerializer(ez::protocol_serializer* ps)
 
 void EditorWidget::regenerate()
 {
-    for (auto itt = m_parentFieldWidgets.begin(); itt != m_parentFieldWidgets.end(); ++itt)
-        itt.value()->deleteLater();
+    while(m_mainLayout->count())
+        delete m_mainLayout->takeAt(m_mainLayout->count() - 1)->widget();
 
     m_parentFieldWidgets.clear();
-    delete layout();
-    setLayout(nullptr);
+    if (m_ps->getFields().size() == 0)
+        return;
 
     // Main table
     QTableWidget* fieldsTable = new QTableWidget();
@@ -151,13 +155,8 @@ void EditorWidget::regenerate()
         tableHeader->setHorizontalHeaderLabels(lessSignificant + mostSignificant);
 
     // Final creation
-    QVBoxLayout* mainLayout = new QVBoxLayout();
-    mainLayout->addWidget(tableHeader);
-    mainLayout->addWidget(fieldsTable);
-    mainLayout->setStretch(1, 1);
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    setLayout(mainLayout);
+    m_mainLayout->addWidget(tableHeader);
+    m_mainLayout->addWidget(fieldsTable);
 }
 
 void EditorWidget::readFieldValue(const QString& parameterName)
@@ -277,7 +276,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
         {
             QPushButton* senderButton = static_cast<QPushButton*>(sender());
             switchBit(senderButton->property("field_name").toString(),
-                        senderButton->property("bit_index").toInt());
+                      senderButton->property("bit_index").toInt());
         }, Qt::DirectConnection);
 
         m_bitButtons.append(bitButton);

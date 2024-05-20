@@ -5,6 +5,7 @@
 
 #include <QLineEdit>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QSpinBox>
 #include <QPushButton>
 #include <QHBoxLayout>
@@ -42,7 +43,9 @@ private:
     QPushButton* m_addButton;
     QPushButton* m_removeButton;
     QPushButton* m_submitButton;
-    QVBoxLayout* m_layout;
+    QCheckBox*   m_isLittleEndianCheckbox;
+    QVBoxLayout* m_fieldsLayout;
+    QVBoxLayout* m_mainLayout;
 };
 
 #endif // CREATOR_WIDGET_H
