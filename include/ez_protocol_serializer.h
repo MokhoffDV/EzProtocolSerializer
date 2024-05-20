@@ -30,18 +30,18 @@ public:
     struct field_init
     {
         std::string name;
-        unsigned int bitCount;
+        unsigned int bit_count;
         visualization_type vis_type = visualization_type::unsigned_integer;
     };
 
     struct field_metadata
     {
-        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const visualization_type vis_type = visualization_type::signed_integer);
+        field_metadata(const unsigned int firstBitInd, const unsigned int bit_count, const std::string& name, const visualization_type vis_type = visualization_type::signed_integer);
         unsigned int firstByteInd;
         unsigned int bytesCount;
         unsigned int touchedBytesCount;
         unsigned int firstBitInd;
-        unsigned int bitCount;
+        unsigned int bit_count;
         unsigned char leftSpacing;
         unsigned char rightSpacing;
         unsigned char firstMask;
@@ -161,13 +161,13 @@ public:
         }
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bitCount % N) {
+        if (field_init.bit_count % N) {
             if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
-                                                                           name.c_str(), field_init.bitCount, N);
+                                                                           name.c_str(), field_init.bit_count, N);
             return;
         }
 
-        const unsigned char ghostFieldLength = field_init.bitCount / N;
+        const unsigned char ghostFieldLength = field_init.bit_count / N;
 
         std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
@@ -231,13 +231,13 @@ public:
         }
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bitCount % N) {
+        if (field_init.bit_count % N) {
             if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
-                                                                           name.c_str(), field_init.bitCount, N);
+                                                                           name.c_str(), field_init.bit_count, N);
             return;
         }
 
-        const unsigned char ghostFieldLength = field_init.bitCount / N;
+        const unsigned char ghostFieldLength = field_init.bit_count / N;
 
         std::string localerror;
         for (unsigned int i = 0; i < N; ++i) {
@@ -278,15 +278,15 @@ private:
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::setFieldValue. T should be arithmetic!");
 
-        if (m_is_little_endian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+        if (m_is_little_endian && fieldMetadata.bit_count > 8 && fieldMetadata.bit_count % 8) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
             return;
         }
 
         if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bitCount != 32 && fieldMetadata.bitCount != 64) {
+            if (fieldMetadata.bit_count != 32 && fieldMetadata.bit_count != 64) {
                 if (errorString != nullptr)
-                    *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+                    *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
                 return;
             }
         }
@@ -296,8 +296,8 @@ private:
             return;
         }
 
-        if (fieldMetadata.bitCount > 64) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+        if (fieldMetadata.bit_count > 64) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
             return;
         }
 
@@ -330,7 +330,7 @@ private:
         m_prealloc_final_bytes = m_prealloc_raw_bytes;
         if (fieldMetadata.rightSpacing) {
             shift_right(m_prealloc_raw_bytes, fieldMetadata.bytesCount + 1, 8 - fieldMetadata.rightSpacing);
-            if (unsigned char transferableBitsCount = fieldMetadata.bitCount % 8)
+            if (unsigned char transferableBitsCount = fieldMetadata.bit_count % 8)
                 if (8 - fieldMetadata.rightSpacing >= transferableBitsCount)
                     m_prealloc_final_bytes = m_prealloc_raw_bytes + 1;
         }
@@ -348,13 +348,13 @@ private:
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::readFieldValue. T should be arithmetic!");
 
-        if (m_is_little_endian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+        if (m_is_little_endian && fieldMetadata.bit_count > 8 && fieldMetadata.bit_count % 8) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
             return T{};
         }
         if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bitCount != 32 && fieldMetadata.bitCount != 64) {
-                if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+            if (fieldMetadata.bit_count != 32 && fieldMetadata.bit_count != 64) {
+                if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
                 return T{};
             }
         }
@@ -364,8 +364,8 @@ private:
             return T{};
         }
 
-        if (fieldMetadata.bitCount > 64) {
-            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+        if (fieldMetadata.bit_count > 64) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bit_count);
             return T{};
         }
 
@@ -406,14 +406,14 @@ private:
         if (std::is_signed_v<T>) {
             if (!get_is_host_little_endian()) {
                 if (m_prealloc_final_bytes[0] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
-                    return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bitCount)));
+                    return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
             } else {
-                if (fieldMetadata.bitCount < 8) {
+                if (fieldMetadata.bit_count < 8) {
                     if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
-                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bitCount)));
+                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
                 } else {
                     if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8))) {
-                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bitCount)));
+                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
                     }
                 }
             }

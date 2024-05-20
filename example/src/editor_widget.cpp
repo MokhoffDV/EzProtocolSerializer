@@ -65,7 +65,7 @@ void EditorWidget::regenerate()
             bool fieldEndsHere = false;
 
             // It was the last bit of current field
-            if (currentBitInd >= fieldMetadata.firstBitInd + fieldMetadata.bitCount - 1) {
+            if (currentBitInd >= fieldMetadata.firstBitInd + fieldMetadata.bit_count - 1) {
                 fieldWidgetEndsHere = true;
                 fieldEndsHere = true;
             }
@@ -192,21 +192,21 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
 
         // Set respective validators to only allow values which fit this field
         if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point) {
-            if (m_fieldMetadata.bitCount == 32) {
+            if (m_fieldMetadata.bit_count == 32) {
                 QDoubleValidator* validator = new QDoubleValidator(std::numeric_limits<float>::min(), std::numeric_limits<float>::max(), 6, m_valueEdit);
                 m_valueEdit->setValidator(validator);
-            } else if (m_fieldMetadata.bitCount == 64) {
+            } else if (m_fieldMetadata.bit_count == 64) {
                 QDoubleValidator* validator = new QDoubleValidator(std::numeric_limits<double>::min(), std::numeric_limits<double>::max(), 6, m_valueEdit);
                 m_valueEdit->setValidator(validator);
             }
         } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer) {
             int64_t max = 0;
-            for (unsigned int i = 0; i < m_fieldMetadata.bitCount - 1; ++i) { max = (max << 1) + 1; }
+            for (unsigned int i = 0; i < m_fieldMetadata.bit_count - 1; ++i) { max = (max << 1) + 1; }
             Int64Validator* validator = new Int64Validator(-max - 1, max, m_valueEdit);
             m_valueEdit->setValidator(validator);
         } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::unsigned_integer) {
             uint64_t max = 0;
-            for (unsigned int i = 0; i < m_fieldMetadata.bitCount; ++i) { max = (max << 1) + 1; }
+            for (unsigned int i = 0; i < m_fieldMetadata.bit_count; ++i) { max = (max << 1) + 1; }
             UInt64Validator* validator = new UInt64Validator(max, m_valueEdit);
             m_valueEdit->setValidator(validator);
         }
@@ -301,9 +301,9 @@ void EditorFieldWidget::processValueText(const QString& valueText) const
 
     const QString fieldName = m_fieldMetadata.name.c_str();
     if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point) {
-        if (m_fieldMetadata.bitCount == 32)
+        if (m_fieldMetadata.bit_count == 32)
             m_ps->write(fieldName.toStdString(), textToCheck.toFloat());
-        else if (m_fieldMetadata.bitCount == 64)
+        else if (m_fieldMetadata.bit_count == 64)
             m_ps->write(fieldName.toStdString(), textToCheck.toDouble());
     } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer)
         m_ps->write(fieldName.toStdString(), textToCheck.toLongLong());
@@ -347,19 +347,19 @@ void EditorFieldWidget::switchBit(const QString& fieldName, const unsigned int b
 
 QString EditorFieldWidget::getFieldValueAsText()
 {
-    if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point && (m_fieldMetadata.bitCount == 32 || m_fieldMetadata.bitCount == 64)) {
-        if (m_fieldMetadata.bitCount == 32)      return QString::number(m_ps->read<float>(m_fieldMetadata.name), 'f', 6);
-        else if (m_fieldMetadata.bitCount == 64) return QString::number(m_ps->read<double>(m_fieldMetadata.name), 'f', 6);
+    if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point && (m_fieldMetadata.bit_count == 32 || m_fieldMetadata.bit_count == 64)) {
+        if (m_fieldMetadata.bit_count == 32)      return QString::number(m_ps->read<float>(m_fieldMetadata.name), 'f', 6);
+        else if (m_fieldMetadata.bit_count == 64) return QString::number(m_ps->read<double>(m_fieldMetadata.name), 'f', 6);
     } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer) {
-        if (m_fieldMetadata.bitCount <= 8)       return QString::number(m_ps->read<int8_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bitCount <= 16) return QString::number(m_ps->read<int16_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bitCount <= 32) return QString::number(m_ps->read<int32_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bitCount <= 64) return QString::number(m_ps->read<int64_t>(m_fieldMetadata.name));
+        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<int8_t>(m_fieldMetadata.name));
+        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<int16_t>(m_fieldMetadata.name));
+        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<int32_t>(m_fieldMetadata.name));
+        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<int64_t>(m_fieldMetadata.name));
     } else {
-        if (m_fieldMetadata.bitCount <= 8)       return QString::number(m_ps->read<uint8_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bitCount <= 16) return QString::number(m_ps->read<uint16_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bitCount <= 32) return QString::number(m_ps->read<uint32_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bitCount <= 64) return QString::number(m_ps->read<uint64_t>(m_fieldMetadata.name));
+        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<uint8_t>(m_fieldMetadata.name));
+        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<uint16_t>(m_fieldMetadata.name));
+        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<uint32_t>(m_fieldMetadata.name));
+        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<uint64_t>(m_fieldMetadata.name));
     }
     return "";
 }

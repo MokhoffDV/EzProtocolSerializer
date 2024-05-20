@@ -203,7 +203,7 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
     int currBitIndInsideBuffer = 0;
     for (const std::string& fieldName : m_fields) {
         const field_metadata& fieldMetadata = m_fields_metadata.find(fieldName)->second;
-        const size_t availableFieldLength = fieldMetadata.bitCount * bitTextLen - 1;
+        const size_t availableFieldLength = fieldMetadata.bit_count * bitTextLen - 1;
         std::string name = fieldMetadata.name;
         std::vector<std::string> nameLinesForField(vp.name_lines_count);
 
@@ -220,19 +220,19 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
 
         if (vp.print_values) {
             std::string valueLine;
-            if (fieldMetadata.vis_type == visualization_type::floating_point && (fieldMetadata.bitCount == 32 || fieldMetadata.bitCount == 64)) {
-                if (fieldMetadata.bitCount == 32) valueLine = "=" + std::to_string(read<float>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount == 64) valueLine = "=" + std::to_string(read<double>(fieldMetadata.name));
+            if (fieldMetadata.vis_type == visualization_type::floating_point && (fieldMetadata.bit_count == 32 || fieldMetadata.bit_count == 64)) {
+                if (fieldMetadata.bit_count == 32) valueLine = "=" + std::to_string(read<float>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count == 64) valueLine = "=" + std::to_string(read<double>(fieldMetadata.name));
             } else if (fieldMetadata.vis_type == visualization_type::signed_integer) {
-                if (fieldMetadata.bitCount <= 8)  valueLine = "=" + std::to_string(read<int8_t>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount <= 16) valueLine = "=" + std::to_string(read<int16_t>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount <= 32) valueLine = "=" + std::to_string(read<int32_t>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount <= 64) valueLine = "=" + std::to_string(read<int64_t>(fieldMetadata.name));
+                if (fieldMetadata.bit_count <= 8)  valueLine = "=" + std::to_string(read<int8_t>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count <= 16) valueLine = "=" + std::to_string(read<int16_t>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count <= 32) valueLine = "=" + std::to_string(read<int32_t>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count <= 64) valueLine = "=" + std::to_string(read<int64_t>(fieldMetadata.name));
             } else {
-                if (fieldMetadata.bitCount <= 8)  valueLine = "=" + std::to_string(read<uint8_t>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount <= 16) valueLine = "=" + std::to_string(read<uint16_t>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount <= 32) valueLine = "=" + std::to_string(read<uint32_t>(fieldMetadata.name));
-                else if (fieldMetadata.bitCount <= 64) valueLine = "=" + std::to_string(read<uint64_t>(fieldMetadata.name));
+                if (fieldMetadata.bit_count <= 8)  valueLine = "=" + std::to_string(read<uint8_t>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count <= 16) valueLine = "=" + std::to_string(read<uint16_t>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count <= 32) valueLine = "=" + std::to_string(read<uint32_t>(fieldMetadata.name));
+                else if (fieldMetadata.bit_count <= 64) valueLine = "=" + std::to_string(read<uint64_t>(fieldMetadata.name));
             }
 
             valueLine = valueLine.substr(0, availableFieldLength);
@@ -370,23 +370,23 @@ bool protocol_serializer::append_field(const field_init& field_init, bool preser
     if (m_fields_metadata.find(field_init.name) != m_fields_metadata.cend())
         return false;
 
-    if (field_init.bitCount == 0)
+    if (field_init.bit_count == 0)
         return false;
 
     if (field_init.name.empty())
         return false;
 
-    if (field_init.vis_type == visualization_type::floating_point && field_init.bitCount != 32 && field_init.bitCount != 64)
+    if (field_init.vis_type == visualization_type::floating_point && field_init.bit_count != 32 && field_init.bit_count != 64)
         return false;
 
     unsigned int firstBitIndex = 0;
     if (!m_fields.empty()) {
         const field_metadata lastFieldMetadata = m_fields_metadata.at(m_fields.back());
-        firstBitIndex = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
+        firstBitIndex = lastFieldMetadata.firstBitInd + lastFieldMetadata.bit_count;
     }
 
     m_fields.push_back(field_init.name);
-    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(firstBitIndex, field_init.bitCount, field_init.name, field_init.vis_type)));
+    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(firstBitIndex, field_init.bit_count, field_init.name, field_init.vis_type)));
 
     if (preserveInternalBufferValues)
         update_internal_buffer();
@@ -404,7 +404,7 @@ bool protocol_serializer::append_protocol(const protocol_serializer& other, bool
 
     for (const std::string& fieldName : other.m_fields) {
         const field_metadata& fieldMetadata = other.m_fields_metadata.find(fieldName)->second;
-        append_field(protocol_serializer::field_init{fieldMetadata.name, fieldMetadata.bitCount}, preserveInternalBufferValues);
+        append_field(protocol_serializer::field_init{fieldMetadata.name, fieldMetadata.bit_count}, preserveInternalBufferValues);
     }
 
     return true;
@@ -566,7 +566,7 @@ void protocol_serializer::reallocate_internal_buffer()
 
     // Reallocate internal buffer
     const field_metadata& lastFieldMetadata = m_fields_metadata.find(m_fields.back())->second;
-    const unsigned int bits = lastFieldMetadata.firstBitInd + lastFieldMetadata.bitCount;
+    const unsigned int bits = lastFieldMetadata.firstBitInd + lastFieldMetadata.bit_count;
     m_internal_buffer_length = bits / 8 + ((bits % 8) ? 1 : 0);
     m_internal_buffer.reset(new unsigned char[m_internal_buffer_length]);
     memset(m_internal_buffer.get(), 0, m_internal_buffer_length);
@@ -592,18 +592,18 @@ void protocol_serializer::update_internal_buffer()
         memcpy(m_internal_buffer.get(), oldBufferCopy.get(), std::min(m_internal_buffer_length, oldBufferLength));
 }
 
-protocol_serializer::field_metadata::field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const visualization_type vis_type)
+protocol_serializer::field_metadata::field_metadata(const unsigned int firstBitInd, const unsigned int bit_count, const std::string& name, const visualization_type vis_type)
 {
     this->vis_type = vis_type;
     this->name = name;
     this->firstBitInd = firstBitInd;
-    this->bitCount = bitCount;
-    bytesCount = bitCount / 8 + ((bitCount % 8) ? 1 : 0);
+    this->bit_count = bit_count;
+    bytesCount = bit_count / 8 + ((bit_count % 8) ? 1 : 0);
     firstByteInd = firstBitInd / 8;
-    unsigned int lastByteInd = (firstBitInd + bitCount - 1) / 8;
+    unsigned int lastByteInd = (firstBitInd + bit_count - 1) / 8;
     touchedBytesCount = lastByteInd - firstByteInd + 1;
     leftSpacing = firstBitInd % 8;
-    rightSpacing = (8 - (firstBitInd + bitCount) % 8) % 8;
+    rightSpacing = (8 - (firstBitInd + bit_count) % 8) % 8;
 
     firstMask = 0xFF;
     lastMask = 0xFF;
