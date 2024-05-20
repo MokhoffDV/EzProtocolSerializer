@@ -152,17 +152,17 @@ ez::protocol_serializer::field_metadata ez::protocol_serializer::getFieldMetadat
     return itt->second;
 }
 
-std::string protocol_serializer::getVisualization(bool drawHeader, int firstLineNum, unsigned int horizontalBitMargin, unsigned int nameLinesCount, bool printValues) const
+std::string protocol_serializer::getVisualization(const visualization_params& vp) const
 {
     if (m_fields.empty())
         return "Protocol::getVisualization(). Protocol is empty";
 
-    horizontalBitMargin = horizontalBitMargin == 0 ? 1 : horizontalBitMargin;
-    nameLinesCount = nameLinesCount == 0 ? 1 : nameLinesCount;
+    const_cast<visualization_params&>(vp).horizontalBitMargin = vp.horizontalBitMargin == 0 ? 1 : vp.horizontalBitMargin;
+    const_cast<visualization_params&>(vp).nameLinesCount = vp.nameLinesCount == 0 ? 1 : vp.nameLinesCount;
 
     // Identify length of line numbers
-    const std::string firstLineNumStr = std::to_string(firstLineNum);
-    const size_t lastLineNum = firstLineNum + (m_internalBufferLength / 2) + (m_internalBufferLength % 2) - 1;
+    const std::string firstLineNumStr = std::to_string(vp.firstLineNum);
+    const size_t lastLineNum = vp.firstLineNum + (m_internalBufferLength / 2) + (m_internalBufferLength % 2) - 1;
     const std::string lastLineNumStr = std::to_string(lastLineNum);
     const size_t lineNumStrLength = std::max(firstLineNumStr.length(), lastLineNumStr.length());
 
@@ -180,17 +180,17 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     std::string result;
 
     // Generate header
-    if (drawHeader) {
+    if (vp.drawHeader) {
         std::string lessSignificantHeader;
         std::string mostSignificantHeader;
         for (int i = 15; i >= 0; i--) {
             if (i < 8)
-                lessSignificantHeader += "|" + std::string(horizontalBitMargin - 1, ' ') + intToStringWithLeadingZeros(i, 2) + std::string(horizontalBitMargin, ' ');
+                lessSignificantHeader += "|" + std::string(vp.horizontalBitMargin - 1, ' ') + intToStringWithLeadingZeros(i, 2) + std::string(vp.horizontalBitMargin, ' ');
             else
-                mostSignificantHeader += "|" + std::string(horizontalBitMargin - 1, ' ') + intToStringWithLeadingZeros(i, 2) + std::string(horizontalBitMargin, ' ');
+                mostSignificantHeader += "|" + std::string(vp.horizontalBitMargin - 1, ' ') + intToStringWithLeadingZeros(i, 2) + std::string(vp.horizontalBitMargin, ' ');
         }
 
-        if (firstLineNum >= 0)
+        if (vp.firstLineNum >= 0)
             result = "|" + std::string(lineNumStrLength + 2, '_');
         if (!m_isLittleEndian)
             result += mostSignificantHeader + lessSignificantHeader + "|\n";
@@ -200,9 +200,9 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
 
     // Generate name lines, value line, bits line
     // as continious lines through whole protocol
-    const size_t bitTextLen = horizontalBitMargin * 2ULL + 2ULL;
+    const size_t bitTextLen = vp.horizontalBitMargin * 2ULL + 2ULL;
     const size_t wordTextLen = bitTextLen * 16ULL;
-    std::vector<std::string> nameLines(nameLinesCount);
+    std::vector<std::string> nameLines(vp.nameLinesCount);
     std::string valuesLine;
     std::string bitsLine;
     int currBitIndInsideBuffer = 0;
@@ -210,9 +210,9 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
         const field_metadata& fieldMetadata = m_fieldsMetadata.find(fieldName)->second;
         const size_t availableFieldLength = fieldMetadata.bitCount * bitTextLen - 1;
         std::string name = fieldMetadata.name;
-        std::vector<std::string> nameLinesForField(nameLinesCount);
+        std::vector<std::string> nameLinesForField(vp.nameLinesCount);
 
-        for (uint32_t i = 0; i < nameLinesCount; ++i) {
+        for (uint32_t i = 0; i < vp.nameLinesCount; ++i) {
             std::string& fieldLine = nameLinesForField.at(i);
             fieldLine = name.substr(0, availableFieldLength);
             if (name.length() >= availableFieldLength)
@@ -223,7 +223,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
             nameLines[i] += fieldLine;
         }
 
-        if (printValues) {
+        if (vp.printValues) {
             std::string valueLine;
             if (fieldMetadata.associatedType == ASSOCIATED_TYPE::FLOATING_POINT && (fieldMetadata.bitCount == 32 || fieldMetadata.bitCount == 64)) {
                 if (fieldMetadata.bitCount == 32) valueLine = "=" + std::to_string(readFieldValue<float>(fieldMetadata.name));
@@ -247,7 +247,7 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
 
         std::string bitLineText;
         for (size_t j = 0; j < availableFieldLength; ++j) {
-            if (j >= horizontalBitMargin && ((j - horizontalBitMargin) % bitTextLen) == 0)
+            if (j >= vp.horizontalBitMargin && ((j - vp.horizontalBitMargin) % bitTextLen) == 0)
                 bitLineText += std::to_string((int)bits[currBitIndInsideBuffer++]);
             else if ((j + 1) % bitTextLen)
                 bitLineText += "_";
@@ -263,38 +263,38 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     while (true) {
         if (nameLines.at(0).length() == 0)
             break;
-        const int lineNum = firstLineNum + currentLineNum++;
+        const int lineNum = vp.firstLineNum + currentLineNum++;
         const std::string lineNumStr = intToStringWithLeadingZeros(lineNum, lineNumStrLength);
         const std::string lineNumNumberPart = "| " + lineNumStr + " |";
         const std::string lineNumEmptyPart = "|" + std::string(lineNumStr.length() + 2, ' ') + "|";
         const std::string lineNumBottomPart = "|" + std::string(lineNumStr.length() + 2, '_') + "|";
 
         if (nameLines.at(0).length() >= wordTextLen) {
-            for (uint32_t i = 0; i < nameLinesCount; ++i) {
+            for (uint32_t i = 0; i < vp.nameLinesCount; ++i) {
                 const std::string lineWithoutLineNum = nameLines.at(i).substr(0, wordTextLen) + "\n";
                 if (i == 0)
-                    result += (firstLineNum >= 0 ? lineNumNumberPart : "|") + lineWithoutLineNum;
+                    result += (vp.firstLineNum >= 0 ? lineNumNumberPart : "|") + lineWithoutLineNum;
                 else
-                    result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + lineWithoutLineNum;
+                    result += (vp.firstLineNum >= 0 ? lineNumEmptyPart : "|") + lineWithoutLineNum;
 
                 nameLines[i] = nameLines[i].substr(wordTextLen);
             }
-            if (printValues) {
-                result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, wordTextLen) + "\n";
+            if (vp.printValues) {
+                result += (vp.firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, wordTextLen) + "\n";
                 valuesLine = valuesLine.substr(wordTextLen);
             }
-            result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bitsLine.substr(0, wordTextLen) + "\n";
+            result += (vp.firstLineNum >= 0 ? lineNumBottomPart : "|") + bitsLine.substr(0, wordTextLen) + "\n";
             bitsLine = bitsLine.substr(wordTextLen);
         } else {
-            for (uint32_t i = 0; i < nameLinesCount; ++i) {
+            for (uint32_t i = 0; i < vp.nameLinesCount; ++i) {
                 if (i == 0)
-                    result += (firstLineNum >= 0 ? lineNumNumberPart : "|") + nameLines.at(i) + "\n";
+                    result += (vp.firstLineNum >= 0 ? lineNumNumberPart : "|") + nameLines.at(i) + "\n";
                 else
-                    result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + nameLines.at(i) + "\n";
+                    result += (vp.firstLineNum >= 0 ? lineNumEmptyPart : "|") + nameLines.at(i) + "\n";
             }
-            if (printValues)
-                result += (firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, wordTextLen) + "\n";
-            result += (firstLineNum >= 0 ? lineNumBottomPart : "|") + bitsLine.substr(0, wordTextLen) + "\n";
+            if (vp.printValues)
+                result += (vp.firstLineNum >= 0 ? lineNumEmptyPart : "|") + valuesLine.substr(0, wordTextLen) + "\n";
+            result += (vp.firstLineNum >= 0 ? lineNumBottomPart : "|") + bitsLine.substr(0, wordTextLen) + "\n";
             break;
         }
     }
@@ -302,13 +302,16 @@ std::string protocol_serializer::getVisualization(bool drawHeader, int firstLine
     return result;
 }
 
-std::string protocol_serializer::getDataVisualization(int firstLineNum, unsigned int bytesPerLine, BASE base, bool spacesBetweenBytes)
+std::string protocol_serializer::getDataVisualization(const data_visualization_params& dvp) const
 {
     if (m_fields.empty())
         return "Protocol::getDataVisualization(). Protocol is empty";
 
-    bytesPerLine = bytesPerLine == 0 ? 1 : bytesPerLine;
-
+    const_cast<data_visualization_params&>(dvp).bytesPerLine = dvp.bytesPerLine == 0 ? 1 : dvp.bytesPerLine;
+    const std::string firstLineNumStr = std::to_string(dvp.firstLineNum);
+    const size_t lastLineNum = dvp.firstLineNum + m_internalBufferLength / dvp.bytesPerLine + ((m_internalBufferLength % dvp.bytesPerLine) ? 1 : 0) - 1;
+    const std::string lastLineNumStr = std::to_string(lastLineNum);
+    const size_t lineNumStrLength = std::max(firstLineNumStr.length(), lastLineNumStr.length());
     unsigned int currentBytesOnLine = 0;
 
     std::string currentLineText;
@@ -316,31 +319,38 @@ std::string protocol_serializer::getDataVisualization(int firstLineNum, unsigned
     unsigned int currentLineNumber = 0;
     for (unsigned int i = 0; i < m_internalBufferLength + 1; ++i) {
         bool itIsFirstByteInLine = false;
-        if (currentBytesOnLine == bytesPerLine || i == 0 || i == m_internalBufferLength) {
+        if (currentBytesOnLine == dvp.bytesPerLine || i == 0 || i == m_internalBufferLength) {
             itIsFirstByteInLine = true;
             if (currentLineText.length())
-                result += (i == 0 ? "" : "\n") + currentLineText;
+                result += (result.empty() ? "" : "\n") + currentLineText;
 
             if (i == m_internalBufferLength)
                 break;
 
             currentBytesOnLine = 0;
 
-            currentLineText = (firstLineNum >= 0) ? (std::to_string(firstLineNum + currentLineNumber++) + ": ") : "";
+            currentLineText = (dvp.firstLineNum >= 0) ? (intToStringWithLeadingZeros(dvp.firstLineNum + currentLineNumber++, lineNumStrLength) + ": ") : "";
         }
 
         char byteTextValue[32];
         memset(byteTextValue, 0, sizeof(byteTextValue));
-        if (base == BASE::HEX)
+        if (dvp.base == data_visualization_params::BASE::HEX)
             sprintf_s(byteTextValue, "%x", m_workingBuffer[i]);
-        else if (base == BASE::DEC)
+        else if (dvp.base == data_visualization_params::BASE::DEC)
             sprintf_s(byteTextValue, "%d", m_workingBuffer[i]);
-        else if (base == BASE::OCT)
+        else if (dvp.base == data_visualization_params::BASE::OCT)
             sprintf_s(byteTextValue, "%o", m_workingBuffer[i]);
-        else if (base == BASE::BIN)
+        else if (dvp.base == data_visualization_params::BASE::BIN)
             sprintf_s(byteTextValue, "%s%s", getHalfByteBinary()[m_workingBuffer[i] >> 4].c_str(), getHalfByteBinary()[m_workingBuffer[i] & 0x0F].c_str());
 
-        currentLineText += (spacesBetweenBytes ? (itIsFirstByteInLine ? "" : " ") : "") + std::string(byteTextValue, strlen(byteTextValue));
+        std::string byteTextValueStr(byteTextValue);
+        // Add leading zeros to add up to length of 2 for HEX and length of 3 for DEC and OCT
+        if(dvp.base == data_visualization_params::BASE::HEX)
+            byteTextValueStr = std::string(2 - byteTextValueStr.length(), '0') + byteTextValueStr;
+        else if(dvp.base != data_visualization_params::BASE::BIN)
+            byteTextValueStr = std::string(3 - byteTextValueStr.length(), '0') + byteTextValueStr;
+
+        currentLineText += (dvp.spacesBetweenBytes ? (itIsFirstByteInLine ? "" : " ") : "") + byteTextValueStr;
         currentBytesOnLine++;
     }
 
@@ -540,7 +550,7 @@ const std::vector<std::string>& protocol_serializer::getHalfByteBinary()
 std::string ez::protocol_serializer::intToStringWithLeadingZeros(int value, size_t length) const
 {
     std::string intString = std::to_string(value);
-    size_t numLeadingZeros = length - intString.length();
+    int64_t numLeadingZeros = length - static_cast<int64_t>(intString.length());
 
     if (value < 0)
         numLeadingZeros -= 1;

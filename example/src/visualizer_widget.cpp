@@ -28,20 +28,24 @@ void VisualizerWidget::setProtocolSerializer(ez::protocol_serializer* ps)
 
 void VisualizerWidget::visualize()
 {
+    using vp = ez::protocol_serializer::visualization_params;
+    using dvp = ez::protocol_serializer::data_visualization_params;
     int prevPosition = m_ui->getVisualizationOutputEdit->verticalScrollBar()->value();
     m_ui->getVisualizationOutputEdit->clear();
-    m_ui->getVisualizationOutputEdit->append(QString(m_ps->getVisualization(m_ui->drawHeaderCheckbox->isChecked(),
-                                                                            m_ui->firstLineNumSpinbox->value(),
-                                                                            m_ui->horizontalBitMarginSpinbox->value(),
-                                                                            m_ui->namesLinesCountSpinbo->value(),
-                                                                            m_ui->printValuesCheckbox->isChecked()).c_str()));
+    m_ui->getVisualizationOutputEdit->append(QString(m_ps->getVisualization(vp()
+                                                                            .setDrawHeader(m_ui->drawHeaderCheckbox->isChecked())
+                                                                            .setfirstLineNum(m_ui->firstLineNumSpinbox->value())
+                                                                            .setHorizontalBitMargin(m_ui->horizontalBitMarginSpinbox->value())
+                                                                            .setNameLinesCount(m_ui->namesLinesCountSpinbo->value())
+                                                                            .setPrintValues(m_ui->printValuesCheckbox->isChecked())).c_str()));
     m_ui->getVisualizationOutputEdit->verticalScrollBar()->setValue(prevPosition);
 
     prevPosition = m_ui->getDataVisualizationOutputEdit->verticalScrollBar()->value();
     m_ui->getDataVisualizationOutputEdit->clear();
-    m_ui->getDataVisualizationOutputEdit->append(QString(m_ps->getDataVisualization(m_ui->firstLineNum2Spinbox->value(),
-                                                                                    m_ui->bytesPerLineSpinbox->value(),
-                                                                                    static_cast<ez::protocol_serializer::BASE>(m_ui->baseCombobox->currentIndex()),
-                                                                                    m_ui->spacesBetweenBytesCheckbox->isChecked()).c_str()));
+    m_ui->getDataVisualizationOutputEdit->append(QString(m_ps->getDataVisualization(dvp()
+                                                                                    .setfirstLineNum(m_ui->firstLineNum2Spinbox->value())
+                                                                                    .setBytesPerLine(m_ui->bytesPerLineSpinbox->value())
+                                                                                    .setBase(static_cast<dvp::BASE>(m_ui->baseCombobox->currentIndex()))
+                                                                                    .setSpacesBetweenBytes(m_ui->spacesBetweenBytesCheckbox->isChecked())).c_str()));
     m_ui->getDataVisualizationOutputEdit->verticalScrollBar()->setValue(prevPosition);
 }

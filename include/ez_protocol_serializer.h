@@ -20,14 +20,6 @@ public:
         EXTERNAL_BUFFER
     };
 
-    enum class BASE
-    {
-        BIN,
-        OCT,
-        DEC,
-        HEX
-    };
-
     enum class ASSOCIATED_TYPE
     {
         SIGNED_INTEGER,
@@ -94,8 +86,41 @@ public:
     fields_list_t getFields() const;
     field_metadata getFieldMetadata(const std::string& name) const;
 
-    std::string getVisualization(bool drawHeader = true, int firstLineNum = 1, unsigned int horizontalBitMargin = 3, unsigned int nameLinesCount = 2, bool printValues = false) const;
-    std::string getDataVisualization(int firstLineNum = 1, unsigned int bytesPerLine = 2, BASE base = BASE::HEX, bool spacesBetweenBytes = true);
+    struct visualization_params
+    {
+        visualization_params& setDrawHeader(const bool draw) { this->drawHeader = draw; return *this; }
+        visualization_params& setfirstLineNum(const int num) { this->firstLineNum = num; return *this; }
+        visualization_params& setHorizontalBitMargin(const unsigned int margin) { this->horizontalBitMargin = margin; return *this; }
+        visualization_params& setNameLinesCount(const unsigned int count) { this->nameLinesCount = count; return *this; }
+        visualization_params& setPrintValues(const bool print) { this->printValues = print; return *this; }
+        bool drawHeader = true;
+        int firstLineNum = 1;
+        unsigned int horizontalBitMargin = 3;
+        unsigned int nameLinesCount = 2;
+        bool printValues = false;
+    };
+    std::string getVisualization(const visualization_params& vp) const;
+
+    struct data_visualization_params
+    {
+        enum class BASE
+        {
+            BIN,
+            OCT,
+            DEC,
+            HEX
+        };
+
+        data_visualization_params& setfirstLineNum(const int num) { this->firstLineNum = num; return *this; }
+        data_visualization_params& setBytesPerLine(const unsigned int count) { this->bytesPerLine = count; return *this; }
+        data_visualization_params& setBase(const BASE b) { this->base = b; return *this; }
+        data_visualization_params& setSpacesBetweenBytes(const bool yes) { this->spacesBetweenBytes = yes; return *this; }
+        int firstLineNum = 1;
+        unsigned int bytesPerLine = 2;
+        BASE base = BASE::HEX;
+        bool spacesBetweenBytes = true;
+    };
+    std::string getDataVisualization(const data_visualization_params& dvp) const;
 
     unsigned char* getFieldBytePointer(const std::string& name) const;
 
