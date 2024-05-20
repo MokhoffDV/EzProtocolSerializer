@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 
     MainWindow mainWindow;
     mainWindow.setWindowTitle("ez::protocol_serializer example");
-    mainWindow.resize(1440, 1024);
+    mainWindow.resize(1620, 1024);
     mainWindow.show();
 
     return app.exec();
