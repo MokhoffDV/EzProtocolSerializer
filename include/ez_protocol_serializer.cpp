@@ -2,7 +2,7 @@
 
 using ez::protocol_serializer;
 
-protocol_serializer::protocol_serializer(const bool isLittleEndian, const protocol_serializer::buffer_source bufferSource, unsigned char* const externalBuffer)
+protocol_serializer::protocol_serializer(const bool isLittleEndian, const protocol_serializer::buffer_source bufferSource, byte_ptr_t const externalBuffer)
     : m_is_little_endian(isLittleEndian)
     , m_buffer_source(bufferSource)
 {
@@ -14,7 +14,7 @@ protocol_serializer::protocol_serializer(const bool isLittleEndian, const protoc
     }
 }
 
-protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool isLittleEndian, const buffer_source bufferSource, unsigned char* const externalBuffer)
+protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool isLittleEndian, const buffer_source bufferSource, byte_ptr_t const externalBuffer)
     : protocol_serializer(isLittleEndian, bufferSource, externalBuffer)
 {
     for (const field_init& field_init : fields) {
@@ -117,18 +117,18 @@ unsigned int protocol_serializer::get_internal_buffer_length() const
     return m_internal_buffer_length;
 }
 
-unsigned char* protocol_serializer::get_external_buffer() const
+ez::protocol_serializer::byte_ptr_t protocol_serializer::get_external_buffer() const
 {
     return m_external_buffer;
 }
 
-void protocol_serializer::set_external_buffer(unsigned char* const externalBuffer)
+void protocol_serializer::set_external_buffer(byte_ptr_t const externalBuffer)
 {
     m_external_buffer = externalBuffer;
     m_working_buffer = m_buffer_source == buffer_source::internal ? m_internal_buffer.get() : m_external_buffer;
 }
 
-unsigned char* protocol_serializer::get_working_buffer() const
+ez::protocol_serializer::byte_ptr_t protocol_serializer::get_working_buffer() const
 {
     return m_working_buffer;
 }
@@ -220,10 +220,10 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
 
         if (vp.print_values) {
             std::string valueLine;
-            if (fieldMetadata.associatedType == associated_type::floating_point && (fieldMetadata.bitCount == 32 || fieldMetadata.bitCount == 64)) {
+            if (fieldMetadata.vis_type == visualization_type::floating_point && (fieldMetadata.bitCount == 32 || fieldMetadata.bitCount == 64)) {
                 if (fieldMetadata.bitCount == 32) valueLine = "=" + std::to_string(read<float>(fieldMetadata.name));
                 else if (fieldMetadata.bitCount == 64) valueLine = "=" + std::to_string(read<double>(fieldMetadata.name));
-            } else if (fieldMetadata.associatedType == associated_type::signed_integer) {
+            } else if (fieldMetadata.vis_type == visualization_type::signed_integer) {
                 if (fieldMetadata.bitCount <= 8)  valueLine = "=" + std::to_string(read<int8_t>(fieldMetadata.name));
                 else if (fieldMetadata.bitCount <= 16) valueLine = "=" + std::to_string(read<int16_t>(fieldMetadata.name));
                 else if (fieldMetadata.bitCount <= 32) valueLine = "=" + std::to_string(read<int32_t>(fieldMetadata.name));
@@ -352,7 +352,7 @@ std::string protocol_serializer::get_data_visualization(const data_visualization
     return result;
 }
 
-unsigned char* protocol_serializer::get_field_pointer(const std::string& name) const
+ez::protocol_serializer::byte_ptr_t protocol_serializer::get_field_pointer(const std::string& name) const
 {
     m_prealloc_metadata_itt = m_fields_metadata.find(name);
 
@@ -376,7 +376,7 @@ bool protocol_serializer::append_field(const field_init& field_init, bool preser
     if (field_init.name.empty())
         return false;
 
-    if (field_init.associatedType == associated_type::floating_point && field_init.bitCount != 32 && field_init.bitCount != 64)
+    if (field_init.vis_type == visualization_type::floating_point && field_init.bitCount != 32 && field_init.bitCount != 64)
         return false;
 
     unsigned int firstBitIndex = 0;
@@ -386,7 +386,7 @@ bool protocol_serializer::append_field(const field_init& field_init, bool preser
     }
 
     m_fields.push_back(field_init.name);
-    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(firstBitIndex, field_init.bitCount, field_init.name, field_init.associatedType)));
+    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(firstBitIndex, field_init.bitCount, field_init.name, field_init.vis_type)));
 
     if (preserveInternalBufferValues)
         update_internal_buffer();
@@ -464,7 +464,7 @@ void protocol_serializer::clear_working_buffer()
     memset(m_working_buffer, 0, m_internal_buffer_length);
 }
 
-void protocol_serializer::shift_right(unsigned char* buf, int len, unsigned char shift)
+void protocol_serializer::shift_right(byte_ptr_t buf, int len, unsigned char shift)
 {
     if (len <= 0)
         return;
@@ -484,7 +484,7 @@ void protocol_serializer::shift_right(unsigned char* buf, int len, unsigned char
     }
 }
 
-void protocol_serializer::shift_left(unsigned char* buf, int len, unsigned char shift)
+void protocol_serializer::shift_left(byte_ptr_t buf, int len, unsigned char shift)
 {
     if (len <= 0)
         return;
@@ -592,9 +592,9 @@ void protocol_serializer::update_internal_buffer()
         memcpy(m_internal_buffer.get(), oldBufferCopy.get(), std::min(m_internal_buffer_length, oldBufferLength));
 }
 
-protocol_serializer::field_metadata::field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const associated_type associatedType)
+protocol_serializer::field_metadata::field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const visualization_type vis_type)
 {
-    this->associatedType = associatedType;
+    this->vis_type = vis_type;
     this->name = name;
     this->firstBitInd = firstBitInd;
     this->bitCount = bitCount;

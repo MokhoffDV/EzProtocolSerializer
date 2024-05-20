@@ -191,7 +191,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
         m_valueEdit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
         // Set respective validators to only allow values which fit this field
-        if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::floating_point) {
+        if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point) {
             if (m_fieldMetadata.bitCount == 32) {
                 QDoubleValidator* validator = new QDoubleValidator(std::numeric_limits<float>::min(), std::numeric_limits<float>::max(), 6, m_valueEdit);
                 m_valueEdit->setValidator(validator);
@@ -199,12 +199,12 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
                 QDoubleValidator* validator = new QDoubleValidator(std::numeric_limits<double>::min(), std::numeric_limits<double>::max(), 6, m_valueEdit);
                 m_valueEdit->setValidator(validator);
             }
-        } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::signed_integer) {
+        } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer) {
             int64_t max = 0;
             for (unsigned int i = 0; i < m_fieldMetadata.bitCount - 1; ++i) { max = (max << 1) + 1; }
             Int64Validator* validator = new Int64Validator(-max - 1, max, m_valueEdit);
             m_valueEdit->setValidator(validator);
-        } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::unsigned_integer) {
+        } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::unsigned_integer) {
             uint64_t max = 0;
             for (unsigned int i = 0; i < m_fieldMetadata.bitCount; ++i) { max = (max << 1) + 1; }
             UInt64Validator* validator = new UInt64Validator(max, m_valueEdit);
@@ -214,7 +214,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
         // Process new entered integer value as soon as text changes
         connect(m_valueEdit, &QLineEdit::textChanged, this, [this](const QString& text)
         {
-            if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::floating_point)
+            if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point)
                 return;
 
             processValueText(text);
@@ -223,7 +223,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
         // Process new entered floating point value only after enter is pressed
         connect(m_valueEdit, &QLineEdit::returnPressed, this, [this]()
         {
-            if (m_fieldMetadata.associatedType != ez::protocol_serializer::associated_type::floating_point)
+            if (m_fieldMetadata.vis_type != ez::protocol_serializer::visualization_type::floating_point)
                 return;
             
             processValueText(m_valueEdit->text());
@@ -300,12 +300,12 @@ void EditorFieldWidget::processValueText(const QString& valueText) const
         return;
 
     const QString fieldName = m_fieldMetadata.name.c_str();
-    if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::floating_point) {
+    if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point) {
         if (m_fieldMetadata.bitCount == 32)
             m_ps->write(fieldName.toStdString(), textToCheck.toFloat());
         else if (m_fieldMetadata.bitCount == 64)
             m_ps->write(fieldName.toStdString(), textToCheck.toDouble());
-    } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::signed_integer)
+    } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer)
         m_ps->write(fieldName.toStdString(), textToCheck.toLongLong());
     else
         m_ps->write(fieldName.toStdString(), textToCheck.toULongLong());
@@ -347,10 +347,10 @@ void EditorFieldWidget::switchBit(const QString& fieldName, const unsigned int b
 
 QString EditorFieldWidget::getFieldValueAsText()
 {
-    if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::floating_point && (m_fieldMetadata.bitCount == 32 || m_fieldMetadata.bitCount == 64)) {
+    if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point && (m_fieldMetadata.bitCount == 32 || m_fieldMetadata.bitCount == 64)) {
         if (m_fieldMetadata.bitCount == 32)      return QString::number(m_ps->read<float>(m_fieldMetadata.name), 'f', 6);
         else if (m_fieldMetadata.bitCount == 64) return QString::number(m_ps->read<double>(m_fieldMetadata.name), 'f', 6);
-    } else if (m_fieldMetadata.associatedType == ez::protocol_serializer::associated_type::signed_integer) {
+    } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer) {
         if (m_fieldMetadata.bitCount <= 8)       return QString::number(m_ps->read<int8_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 16) return QString::number(m_ps->read<int16_t>(m_fieldMetadata.name));
         else if (m_fieldMetadata.bitCount <= 32) return QString::number(m_ps->read<int32_t>(m_fieldMetadata.name));

@@ -42,7 +42,7 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
             if (fieldItem == nullptr)
                 continue;
 
-            const bool added = m_ps->append_field({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getAssocType()});
+            const bool added = m_ps->append_field({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getVisualizationType()});
             if (!added) {
                 errorOccured = true;
                 break;
@@ -88,42 +88,42 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
     , m_index(index)
     , m_nameEdit(new QLineEdit(QString("field_%1").arg(m_index)))
     , m_bitCountSpinbox(new QSpinBox())
-    , m_assocTypeCombo(new QComboBox())
+    , m_visTypeCombo(new QComboBox())
 {
     m_nameEdit->setPlaceholderText("Field name...");
     m_bitCountSpinbox->setRange(1, 32768);
     m_bitCountSpinbox->setValue(8);
-    m_assocTypeCombo->addItem("signed_integer", static_cast<int>(ez::protocol_serializer::associated_type::signed_integer));
-    m_assocTypeCombo->addItem("unsigned_integer", static_cast<int>(ez::protocol_serializer::associated_type::unsigned_integer));
-    m_assocTypeCombo->addItem("floating_point", static_cast<int>(ez::protocol_serializer::associated_type::floating_point));
-    m_assocTypeCombo->setCurrentIndex(0);
-    m_assocTypeCombo->setProperty("prev_index", m_assocTypeCombo->currentIndex());
+    m_visTypeCombo->addItem("signed_integer", static_cast<int>(ez::protocol_serializer::visualization_type::signed_integer));
+    m_visTypeCombo->addItem("unsigned_integer", static_cast<int>(ez::protocol_serializer::visualization_type::unsigned_integer));
+    m_visTypeCombo->addItem("floating_point", static_cast<int>(ez::protocol_serializer::visualization_type::floating_point));
+    m_visTypeCombo->setCurrentIndex(0);
+    m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
 
-    const auto& dropAssociatedType = [this](int indexToDropTo)
+    const auto& dropvis_type = [this](int indexToDropTo)
     {
-        QMessageBox::warning(m_assocTypeCombo, "Not applicable", "Associated floating point type is only available for fields with length of 32 (float) or 64(double) bits!", QMessageBox::Ok);
-        m_assocTypeCombo->blockSignals(true);
-        m_assocTypeCombo->setCurrentIndex(indexToDropTo);
-        m_assocTypeCombo->setProperty("prev_index", m_assocTypeCombo->currentIndex());
-        m_assocTypeCombo->blockSignals(false);
+        QMessageBox::warning(m_visTypeCombo, "Not applicable", "'floating point' visualization type is only available for fields with length of 32 (float) or 64(double) bits!", QMessageBox::Ok);
+        m_visTypeCombo->blockSignals(true);
+        m_visTypeCombo->setCurrentIndex(indexToDropTo);
+        m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
+        m_visTypeCombo->blockSignals(false);
     };
 
-    connect(m_assocTypeCombo, &QComboBox::currentIndexChanged, this, [this, dropAssociatedType](int index)
+    connect(m_visTypeCombo, &QComboBox::currentIndexChanged, this, [this, dropvis_type](int index)
     {
-        using assoc_type = ez::protocol_serializer::associated_type;
-        if (static_cast<assoc_type>(index) == assoc_type::floating_point && m_bitCountSpinbox->value() != 32 && m_bitCountSpinbox->value() != 64) {
-            dropAssociatedType(m_assocTypeCombo->property("prev_index").toInt());
+        using vis_type = ez::protocol_serializer::visualization_type;
+        if (static_cast<vis_type>(index) == vis_type::floating_point && m_bitCountSpinbox->value() != 32 && m_bitCountSpinbox->value() != 64) {
+            dropvis_type(m_visTypeCombo->property("prev_index").toInt());
             return;
         }
 
-        m_assocTypeCombo->setProperty("prev_index", m_assocTypeCombo->currentIndex());
+        m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
     });
 
-    connect(m_bitCountSpinbox, &QSpinBox::valueChanged, this, [this, dropAssociatedType](int value)
+    connect(m_bitCountSpinbox, &QSpinBox::valueChanged, this, [this, dropvis_type](int value)
     {
-        using assoc_type = ez::protocol_serializer::associated_type;
-        if (static_cast<assoc_type>(m_assocTypeCombo->currentIndex()) == assoc_type::floating_point && value != 32 && value != 64)
-            dropAssociatedType(0);
+        using vis_type = ez::protocol_serializer::visualization_type;
+        if (static_cast<vis_type>(m_visTypeCombo->currentIndex()) == vis_type::floating_point && value != 32 && value != 64)
+            dropvis_type(0);
     });
 
     QHBoxLayout* layout = new QHBoxLayout(this);
@@ -132,7 +132,7 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
     layout->addWidget(new QLabel(","));
     layout->addWidget(m_bitCountSpinbox, 1);
     layout->addWidget(new QLabel(","));
-    layout->addWidget(m_assocTypeCombo, 1);
+    layout->addWidget(m_visTypeCombo, 1);
     layout->addWidget(new QLabel("},"));
     setLayout(layout);
 }
@@ -147,9 +147,9 @@ unsigned int CreatorFieldWidget::getBitCount() const
     return m_bitCountSpinbox->value();
 }
 
-ez::protocol_serializer::associated_type CreatorFieldWidget::getAssocType() const
+ez::protocol_serializer::visualization_type CreatorFieldWidget::getVisualizationType() const
 {
-    return static_cast<ez::protocol_serializer::associated_type>(m_assocTypeCombo->currentData().toInt());
+    return static_cast<ez::protocol_serializer::visualization_type>(m_visTypeCombo->currentData().toInt());
 }
 
 void CreatorWidget::setProtocolSerializer(ez::protocol_serializer* ps)

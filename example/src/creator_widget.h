@@ -18,12 +18,12 @@ public:
     CreatorFieldWidget(int index, QWidget* parent = nullptr);
     QString getName() const;
     unsigned int getBitCount() const;
-    ez::protocol_serializer::associated_type getAssocType() const;
+    ez::protocol_serializer::visualization_type getVisualizationType() const;
 private:
     int m_index;
     QLineEdit* m_nameEdit;
     QSpinBox* m_bitCountSpinbox;
-    QComboBox* m_assocTypeCombo;
+    QComboBox* m_visTypeCombo;
 };
 
 class CreatorWidget : public QWidget

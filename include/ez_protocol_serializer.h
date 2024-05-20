@@ -20,7 +20,7 @@ public:
         external
     };
 
-    enum class associated_type
+    enum class visualization_type
     {
         signed_integer,
         unsigned_integer,
@@ -31,12 +31,12 @@ public:
     {
         std::string name;
         unsigned int bitCount;
-        associated_type associatedType = associated_type::unsigned_integer;
+        visualization_type vis_type = visualization_type::unsigned_integer;
     };
 
     struct field_metadata
     {
-        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const associated_type associatedType = associated_type::signed_integer);
+        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const visualization_type vis_type = visualization_type::signed_integer);
         unsigned int firstByteInd;
         unsigned int bytesCount;
         unsigned int touchedBytesCount;
@@ -47,7 +47,7 @@ public:
         unsigned char firstMask;
         unsigned char lastMask;
         std::string name;
-        associated_type associatedType;
+        visualization_type vis_type;
     };
 
     struct visualization_params
@@ -86,17 +86,18 @@ public:
 
     using fields_list_t = std::list<std::string>;
     using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
-    using internal_buffer_ptr = std::unique_ptr<unsigned char[]>;
+    using internal_buffer_ptr_t = std::unique_ptr<unsigned char[]>;
+    using byte_ptr_t = unsigned char*;
 
     // Creation
     protocol_serializer(const bool isLittleEndian = false,
                         const buffer_source bufferSource = buffer_source::internal,
-                        unsigned char* const externalBuffer = nullptr);
+                        byte_ptr_t const externalBuffer = nullptr);
 
     protocol_serializer(const std::vector<field_init>& fields,
                         const bool isLittleEndian = false,
                         const buffer_source bufferSource = buffer_source::internal,
-                        unsigned char* const externalBuffer = nullptr);
+                        byte_ptr_t const externalBuffer = nullptr);
     protocol_serializer(const protocol_serializer& other);
     protocol_serializer& operator=(const protocol_serializer& other);
     protocol_serializer(protocol_serializer&& other) noexcept;
@@ -116,15 +117,15 @@ public:
     bool get_is_little_endian() const;
 
     // Buffers
-    void                       set_buffer_source(const buffer_source bufferSource);
-    buffer_source              get_buffer_source() const;
-    const internal_buffer_ptr& get_internal_buffer() const;
-    unsigned int               get_internal_buffer_length() const;
-    unsigned char*             get_external_buffer() const;
-    void                       set_external_buffer(unsigned char* const externalBuffer);
-    unsigned char*             get_working_buffer() const;
-    void                       clear_working_buffer();
-    unsigned char*             get_field_pointer(const std::string& name) const;
+    void                         set_buffer_source(const buffer_source bufferSource);
+    buffer_source                get_buffer_source() const;
+    const internal_buffer_ptr_t& get_internal_buffer() const;
+    unsigned int                 get_internal_buffer_length() const;
+    byte_ptr_t                   get_external_buffer() const;
+    void                         set_external_buffer(byte_ptr_t const externalBuffer);
+    byte_ptr_t                   get_working_buffer() const;
+    void                         clear_working_buffer();
+    byte_ptr_t                   get_field_pointer(const std::string& name) const;
 
     // Visualization
     std::string get_visualization(const visualization_params& vp) const;
@@ -303,7 +304,7 @@ private:
         memset(m_prealloc_raw_bytes, 0, 65);
         if (std::is_integral<T>::value) {
             m_prealloc_val = value;
-            m_prealloc_ptr_to_first_copyable_msb = (unsigned char*)&m_prealloc_val;
+            m_prealloc_ptr_to_first_copyable_msb = (byte_ptr_t)&m_prealloc_val;
             if (!get_is_host_little_endian()) {
                 m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - fieldMetadata.bytesCount;
             }
@@ -442,8 +443,8 @@ private:
     void copy_from(const protocol_serializer& other);
     void move_from(protocol_serializer&& other);
 
-    static void shift_left(unsigned char* buf, int len, unsigned char shift);
-    static void shift_right(unsigned char* buf, int len, unsigned char shift);
+    static void shift_left(byte_ptr_t buf, int len, unsigned char shift);
+    static void shift_right(byte_ptr_t buf, int len, unsigned char shift);
 
     static const std::map<unsigned char, unsigned char>& get_right_masks();
     static const std::map<unsigned char, unsigned char>& get_left_masks();
@@ -452,16 +453,16 @@ private:
     void reallocate_internal_buffer();
     void update_internal_buffer();
 
-    internal_buffer_ptr m_internal_buffer;
+    internal_buffer_ptr_t m_internal_buffer;
     unsigned int m_internal_buffer_length = 0;
-    unsigned char* m_external_buffer = nullptr;
-    unsigned char* m_working_buffer = nullptr;
+    byte_ptr_t m_external_buffer = nullptr;
+    byte_ptr_t m_working_buffer = nullptr;
     buffer_source m_buffer_source;
 
-    mutable unsigned char* m_prealloc_final_bytes = nullptr;
+    mutable byte_ptr_t m_prealloc_final_bytes = nullptr;
     mutable unsigned int m_prealloc_final_bytes_count = 0;
     mutable uint64_t m_prealloc_val = 0;
-    mutable unsigned char* m_prealloc_ptr_to_first_copyable_msb = nullptr; //msb - "Most significant byte"
+    mutable byte_ptr_t m_prealloc_ptr_to_first_copyable_msb = nullptr; //msb - "Most significant byte"
     mutable unsigned char m_prealloc_raw_bytes[65] = "";
     mutable fields_metadata_t::const_iterator m_prealloc_metadata_itt;
 
