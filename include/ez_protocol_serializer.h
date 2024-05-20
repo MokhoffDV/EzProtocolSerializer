@@ -14,29 +14,29 @@ namespace ez {
 class protocol_serializer
 {
 public:
-    enum class BUFFER_SOURCE
+    enum class buffer_source
     {
-        INTERNAL_BUFFER,
-        EXTERNAL_BUFFER
+        internal,
+        external
     };
 
-    enum class ASSOCIATED_TYPE
+    enum class associated_type
     {
-        SIGNED_INTEGER,
-        UNSIGNED_INTEGER,
-        FLOATING_POINT
+        signed_integer,
+        unsigned_integer,
+        floating_point
     };
 
     struct field
     {
         std::string name;
         unsigned int bitCount;
-        ASSOCIATED_TYPE associatedType = ASSOCIATED_TYPE::UNSIGNED_INTEGER;
+        associated_type associatedType = associated_type::unsigned_integer;
     };
 
     struct field_metadata
     {
-        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const ASSOCIATED_TYPE associatedType = ASSOCIATED_TYPE::SIGNED_INTEGER);
+        field_metadata(const unsigned int firstBitInd, const unsigned int bitCount, const std::string& name, const associated_type associatedType = associated_type::signed_integer);
         unsigned int firstByteInd;
         unsigned int bytesCount;
         unsigned int touchedBytesCount;
@@ -47,19 +47,19 @@ public:
         unsigned char firstMask;
         unsigned char lastMask;
         std::string name;
-        ASSOCIATED_TYPE associatedType;
+        associated_type associatedType;
     };
 
     using fields_list_t = std::list<std::string>;
     using fields_metadata_t = std::unordered_map<std::string, field_metadata>;
 
     protocol_serializer(const bool isLittleEndian = false,
-                        const BUFFER_SOURCE bufferSource = BUFFER_SOURCE::INTERNAL_BUFFER,
+                        const buffer_source bufferSource = buffer_source::internal,
                         unsigned char* const externalBuffer = nullptr);
 
     protocol_serializer(const std::vector<field>& fields,
                         const bool isLittleEndian = false,
-                        const BUFFER_SOURCE bufferSource = BUFFER_SOURCE::INTERNAL_BUFFER,
+                        const buffer_source bufferSource = buffer_source::internal,
                         unsigned char* const externalBuffer = nullptr);
 
     protocol_serializer(const protocol_serializer& other);
@@ -68,101 +68,100 @@ public:
     protocol_serializer(protocol_serializer&& other) noexcept;
     protocol_serializer& operator=(protocol_serializer&& other) noexcept;
 
-    void setIsLittleEndian(const bool isLittleEndian);
-    bool getIsLittleEndian() const;
+    void set_is_little_endian(const bool isLittleEndian);
+    bool get_is_little_endian() const;
 
-    void setBufferSource(const BUFFER_SOURCE bufferSource);
-    BUFFER_SOURCE getBufferSource() const;
+    void set_buffer_source(const buffer_source bufferSource);
+    buffer_source get_buffer_source() const;
 
-    const std::unique_ptr<unsigned char[]>& getInternalBuffer() const;
-    unsigned int getInternalBufferLength() const;
+    const std::unique_ptr<unsigned char[]>& get_internal_buffer() const;
+    unsigned int get_internal_buffer_length() const;
 
-    unsigned char* getExternalBuffer() const;
-    void setExternalBuffer(unsigned char* const externalBuffer);
+    unsigned char* get_external_buffer() const;
+    void set_external_buffer(unsigned char* const externalBuffer);
 
-    void setInternalBufferValues(unsigned char* const bufferToCopy);
-    unsigned char* getWorkingBuffer() const;
+    unsigned char* get_working_buffer() const;
 
-    fields_list_t getFields() const;
-    field_metadata getFieldMetadata(const std::string& name) const;
+    fields_list_t get_fields_list() const;
+    field_metadata get_field_metadata(const std::string& name) const;
 
     struct visualization_params
     {
-        visualization_params& setDrawHeader(const bool draw) { this->drawHeader = draw; return *this; }
-        visualization_params& setfirstLineNum(const int num) { this->firstLineNum = num; return *this; }
-        visualization_params& setHorizontalBitMargin(const unsigned int margin) { this->horizontalBitMargin = margin; return *this; }
-        visualization_params& setNameLinesCount(const unsigned int count) { this->nameLinesCount = count; return *this; }
-        visualization_params& setPrintValues(const bool print) { this->printValues = print; return *this; }
-        bool drawHeader = true;
-        int firstLineNum = 1;
-        unsigned int horizontalBitMargin = 3;
-        unsigned int nameLinesCount = 2;
-        bool printValues = false;
+        visualization_params& set_draw_header(const bool draw) { this->draw_header = draw; return *this; }
+        visualization_params& set_first_line_num(const int num) { this->first_line_num = num; return *this; }
+        visualization_params& set_horizontal_bit_margin(const unsigned int margin) { this->horizontal_bit_margin = margin; return *this; }
+        visualization_params& set_name_lines_count(const unsigned int count) { this->name_lines_count = count; return *this; }
+        visualization_params& set_print_values(const bool print) { this->print_values = print; return *this; }
+        bool draw_header = true;
+        int first_line_num = 1;
+        unsigned int horizontal_bit_margin = 3;
+        unsigned int name_lines_count = 2;
+        bool print_values = false;
     };
-    std::string getVisualization(const visualization_params& vp) const;
+    std::string get_visualization(const visualization_params& vp) const;
 
     struct data_visualization_params
     {
-        enum class BASE
+        enum class base
         {
-            BIN,
-            OCT,
-            DEC,
-            HEX
+            bin,
+            oct,
+            dec,
+            hex
         };
 
-        data_visualization_params& setfirstLineNum(const int num) { this->firstLineNum = num; return *this; }
-        data_visualization_params& setBytesPerLine(const unsigned int count) { this->bytesPerLine = count; return *this; }
-        data_visualization_params& setBase(const BASE b) { this->base = b; return *this; }
-        data_visualization_params& setSpacesBetweenBytes(const bool yes) { this->spacesBetweenBytes = yes; return *this; }
-        int firstLineNum = 1;
-        unsigned int bytesPerLine = 2;
-        BASE base = BASE::HEX;
-        bool spacesBetweenBytes = true;
+        data_visualization_params& set_first_line_num(const int num) { this->first_line_num = num; return *this; }
+        data_visualization_params& set_bytes_per_line(const unsigned int count) { this->bytes_per_line = count; return *this; }
+        data_visualization_params& set_base(const base b) { this->base_system = b; return *this; }
+        data_visualization_params& set_spaces_between_bytes(const bool yes) { this->spaces_between_bytes = yes; return *this; }
+        int first_line_num = 1;
+        unsigned int bytes_per_line = 2;
+        base base_system = base::hex;
+        bool spaces_between_bytes = true;
     };
-    std::string getDataVisualization(const data_visualization_params& dvp) const;
+    std::string get_data_visualization(const data_visualization_params& dvp) const;
 
-    unsigned char* getFieldBytePointer(const std::string& name) const;
+    unsigned char* get_field_pointer(const std::string& name) const;
 
-    bool appendField(const field& field, bool preserveInternalBufferValues = true);
-    bool appendProtocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
+    bool append_field(const field& field, bool preserveInternalBufferValues = true);
+    bool append_protocol(const protocol_serializer& other, bool preserveInternalBufferValues = true);
 
-    void removeField(const std::string& name, bool preserveInternalBufferValues = true);
-    void removeLastField(bool preserveInternalBufferValues = true);
-    void removeAllFields();
-    void clearWorkingBuffer();
+    void remove_field(const std::string& name, bool preserveInternalBufferValues = true);
+    void remove_last_field(bool preserveInternalBufferValues = true);
+    void clear_protocol();
+    void clear_working_buffer();
 
     template<class T>
-    void setFieldValue(const std::string& name, const T& value, std::string* errorString = nullptr)
+    void write(const std::string& name, const T& value, std::string* errorString = nullptr)
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
-        if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
+        m_prealloc_metadata_itt = m_fields_metadata.find(name);
+        if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::setFieldValue. There is no field '%s'!\n", name.c_str());
+                *errorString = format_string("Protocol::setFieldValue. There is no field '%s'!\n", name.c_str());
             return;
         }
-        _setFieldValue(m_prealloc_fieldMetadataItt->second, value, errorString);
+        _write(m_prealloc_metadata_itt->second, value, errorString);
     }
 
     template<class T>
-    void setGhostFieldValue(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T& value, std::string* errorString = nullptr)
+    void writeGhost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T& value, std::string* errorString = nullptr)
     {
-        _setFieldValue(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), value, errorString);
+        _write(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), value, errorString);
     }
 
     template<class T, size_t N>
-    void setFieldValueAsArray(const std::string& name, const T array[N], std::string* errorString = nullptr)
+    void writeArray(const std::string& name, const T array[N], std::string* errorString = nullptr)
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
-        if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
+        m_prealloc_metadata_itt = m_fields_metadata.find(name);
+        if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::setFieldValueAsArray.There is no field '%s'!\n", name.c_str());
+                *errorString = format_string("Protocol::setFieldValueAsArray.There is no field '%s'!\n", name.c_str());
             return;
         }
 
-        const field_metadata& field = m_prealloc_fieldMetadataItt->second;
+        const field_metadata& field = m_prealloc_metadata_itt->second;
         if (field.bitCount % N) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValueAsArray. Field length (%d bits) is not divisible between %d elements!",
                                                                            name.c_str(), field.bitCount, N);
             return;
         }
@@ -174,17 +173,17 @@ public:
             if (localerror.length()) break;
 
             unsigned int firstBitInd = field.firstBitInd + i * ghostFieldLength;
-            setGhostFieldValue(firstBitInd, ghostFieldLength, array[i], &localerror);
+            setGhost(firstBitInd, ghostFieldLength, array[i], &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
     }
 
     template<class T, size_t N>
-    void setGhostFieldValueAsArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T array[N], std::string* errorString = nullptr)
+    void writeGhostArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, const T array[N], std::string* errorString = nullptr)
     {
         if (fieldBitCount % N) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!",
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!",
                                                                            fieldBitCount, N);
             return;
         }
@@ -196,43 +195,43 @@ public:
             if (localerror.length()) break;
 
             unsigned int firstBitInd = fieldFirstBit + i * ghostFieldLength;
-            setGhostFieldValue(firstBitInd, ghostFieldLength, array[i], &localerror);
+            setGhost(firstBitInd, ghostFieldLength, array[i], &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
     }
 
     template<class T>
-    T readFieldValue(const std::string& name, std::string* errorString = nullptr) const
+    T read(const std::string& name, std::string* errorString = nullptr) const
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
-        if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
+        m_prealloc_metadata_itt = m_fields_metadata.find(name);
+        if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::readFieldValue. There is no field '%s'!\n", name.c_str());
+                *errorString = format_string("Protocol::readFieldValue. There is no field '%s'!\n", name.c_str());
             return T{};
         }
-        return _readFieldValue<T>(m_prealloc_fieldMetadataItt->second, errorString);
+        return _read<T>(m_prealloc_metadata_itt->second, errorString);
     }
 
     template<class T>
-    T readGhostFieldValue(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, std::string* errorString = nullptr) const
+    T readGhost(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, std::string* errorString = nullptr) const
     {
-        return _readFieldValue<T>(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), errorString);
+        return _read<T>(field_metadata(fieldFirstBit, fieldBitCount, "<field_ghost>"), errorString);
     }
 
     template<class T, size_t N>
-    void readFieldValueAsArray(const std::string& name, T array[N], std::string* errorString = nullptr) const
+    void readArray(const std::string& name, T array[N], std::string* errorString = nullptr) const
     {
-        m_prealloc_fieldMetadataItt = m_fieldsMetadata.find(name);
-        if (m_prealloc_fieldMetadataItt == m_fieldsMetadata.cend()) {
+        m_prealloc_metadata_itt = m_fields_metadata.find(name);
+        if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. There is no field '%s'!\n", name.c_str());
+                *errorString = format_string("Protocol::readFieldValueAsArray. There is no field '%s'!\n", name.c_str());
             return;
         }
 
-        const field_metadata& field = m_prealloc_fieldMetadataItt->second;
+        const field_metadata& field = m_prealloc_metadata_itt->second;
         if (field.bitCount % N) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
+            if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValueAsArray. Field length of '%s', equals to %d bits, is not divisible between %d elements!",
                                                                            name.c_str(), field.bitCount, N);
             return;
         }
@@ -244,18 +243,18 @@ public:
             if (localerror.length()) break;
 
             unsigned int firstBitInd = field.firstBitInd + i * ghostFieldLength;
-            array[i] = readGhostFieldValue<T>(firstBitInd, ghostFieldLength, &localerror);
+            array[i] = readGhost<T>(firstBitInd, ghostFieldLength, &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
     }
 
     template<class T, size_t N>
-    void readGhostFieldValueAsArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, T array[N], std::string* errorString = nullptr)
+    void readGhostArray(const unsigned int fieldFirstBit, const unsigned int fieldBitCount, T array[N], std::string* errorString = nullptr)
     {
         if (fieldBitCount % N) {
             if (errorString != nullptr)
-                *errorString = getStringFromFormat("Protocol::readFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!", fieldBitCount, N);
+                *errorString = format_string("Protocol::readFieldValueAsArray. Ghost field length (%d bits) is not divisible between %d elements!", fieldBitCount, N);
             return;
         }
 
@@ -266,7 +265,7 @@ public:
             if (localerror.length()) break;
 
             unsigned int firstBitInd = fieldFirstBit + i * ghostFieldLength;
-            array[i] = readGhostFieldValue<T>(firstBitInd, ghostFieldLength, &localerror);
+            array[i] = readGhost<T>(firstBitInd, ghostFieldLength, &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
@@ -274,162 +273,162 @@ public:
 
 private:
     template<class T>
-    void _setFieldValue(const field_metadata& fieldMetadata, const T& value, std::string* errorString = nullptr)
+    void _write(const field_metadata& fieldMetadata, const T& value, std::string* errorString = nullptr)
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::setFieldValue. T should be arithmetic!");
 
-        if (m_isLittleEndian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+        if (m_is_little_endian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return;
         }
 
         if (std::is_floating_point<T>::value) {
             if (fieldMetadata.bitCount != 32 && fieldMetadata.bitCount != 64) {
                 if (errorString != nullptr)
-                    *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+                    *errorString = format_string("Protocol::setFieldValue. Field '%s' (length %d) is being written as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
                 return;
             }
         }
 
-        if (m_workingBuffer == nullptr) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Current buffer (BUFFER_SOURCE::%s) == nullptr!", m_bufferSource == BUFFER_SOURCE::EXTERNAL_BUFFER ? "EXTERNAL_BUFFER" : "INTERNAL_BUFFER");
+        if (m_working_buffer == nullptr) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Current buffer (buffer_source::%s) == nullptr!", m_buffer_source == buffer_source::external ? "external" : "internal");
             return;
         }
 
         if (fieldMetadata.bitCount > 64) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return;
         }
 
-        memset(m_prealloc_rawBytes, 0, 65);
+        memset(m_prealloc_raw_bytes, 0, 65);
         if (std::is_integral<T>::value) {
             m_prealloc_val = value;
-            m_prealloc_ptrToFirstCopyableMostSignificantByte = (unsigned char*)&m_prealloc_val;
-            if (!getIsMachineLittleEndian()) {
-                m_prealloc_ptrToFirstCopyableMostSignificantByte += sizeof(uint64_t) - fieldMetadata.bytesCount;
+            m_prealloc_ptr_to_first_copyable_msb = (unsigned char*)&m_prealloc_val;
+            if (!get_is_host_little_endian()) {
+                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - fieldMetadata.bytesCount;
             }
-            memcpy(m_prealloc_rawBytes, m_prealloc_ptrToFirstCopyableMostSignificantByte, fieldMetadata.bytesCount);
-            if (getIsMachineLittleEndian() != m_isLittleEndian)
+            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, fieldMetadata.bytesCount);
+            if (get_is_host_little_endian() != m_is_little_endian)
                 for (uint32_t i = 0; i < fieldMetadata.bytesCount / 2; ++i)
-                    std::swap(m_prealloc_rawBytes[i], m_prealloc_rawBytes[fieldMetadata.bytesCount - 1 - i]);
+                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[fieldMetadata.bytesCount - 1 - i]);
         } else if (std::is_floating_point<T>::value) {
             if (fieldMetadata.bytesCount == 4) {
                 float val = value;
-                memcpy(m_prealloc_rawBytes, &val, 4);
+                memcpy(m_prealloc_raw_bytes, &val, 4);
             } else if (fieldMetadata.bytesCount == 8) {
                 double val = value;
-                memcpy(m_prealloc_rawBytes, &val, 8);
+                memcpy(m_prealloc_raw_bytes, &val, 8);
             }
         }
 
         if (fieldMetadata.leftSpacing == 0 && fieldMetadata.rightSpacing == 0) {
-            memcpy(m_workingBuffer + fieldMetadata.firstByteInd, m_prealloc_rawBytes, fieldMetadata.bytesCount);
+            memcpy(m_working_buffer + fieldMetadata.firstByteInd, m_prealloc_raw_bytes, fieldMetadata.bytesCount);
             return;
         }
 
-        m_prealloc_finalBytes = m_prealloc_rawBytes;
+        m_prealloc_final_bytes = m_prealloc_raw_bytes;
         if (fieldMetadata.rightSpacing) {
-            shiftRight(m_prealloc_rawBytes, fieldMetadata.bytesCount + 1, 8 - fieldMetadata.rightSpacing);
+            shift_right(m_prealloc_raw_bytes, fieldMetadata.bytesCount + 1, 8 - fieldMetadata.rightSpacing);
             if (unsigned char transferableBitsCount = fieldMetadata.bitCount % 8)
                 if (8 - fieldMetadata.rightSpacing >= transferableBitsCount)
-                    m_prealloc_finalBytes = m_prealloc_rawBytes + 1;
+                    m_prealloc_final_bytes = m_prealloc_raw_bytes + 1;
         }
 
         unsigned char mask = 0;
         for (uint32_t i = 0; i < fieldMetadata.touchedBytesCount; ++i) {
             mask = i == 0 ? fieldMetadata.firstMask : i != fieldMetadata.touchedBytesCount - 1 ? 0xFF : fieldMetadata.lastMask;
-            m_workingBuffer[fieldMetadata.firstByteInd + i] &= ~mask;
-            m_workingBuffer[fieldMetadata.firstByteInd + i] |= m_prealloc_finalBytes[i] & mask;
+            m_working_buffer[fieldMetadata.firstByteInd + i] &= ~mask;
+            m_working_buffer[fieldMetadata.firstByteInd + i] |= m_prealloc_final_bytes[i] & mask;
         }
     }
 
     template<class T>
-    T _readFieldValue(const field_metadata& fieldMetadata, std::string* errorString = nullptr) const
+    T _read(const field_metadata& fieldMetadata, std::string* errorString = nullptr) const
     {
         static_assert(std::is_arithmetic<T>(), "Protocol::readFieldValue. T should be arithmetic!");
 
-        if (m_isLittleEndian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+        if (m_is_little_endian && fieldMetadata.bitCount > 8 && fieldMetadata.bitCount % 8) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is longer than 8 bits, and is not divisible by 8!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return T{};
         }
         if (std::is_floating_point<T>::value) {
             if (fieldMetadata.bitCount != 32 && fieldMetadata.bitCount != 64) {
-                if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+                if (errorString != nullptr) *errorString = format_string("Protocol::readFieldValue. Field '%s' (length %d) is being read as floating point, while having length of not 32 or 64!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
                 return T{};
             }
         }
 
-        if (m_workingBuffer == nullptr) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Current buffer (BUFFER_SOURCE::%s) == nullptr!", m_bufferSource == BUFFER_SOURCE::EXTERNAL_BUFFER ? "EXTERNAL_BUFFER" : "INTERNAL_BUFFER");
+        if (m_working_buffer == nullptr) {
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Current buffer (buffer_source::%s) == nullptr!", m_buffer_source == buffer_source::external ? "external" : "internal");
             return T{};
         }
 
         if (fieldMetadata.bitCount > 64) {
-            if (errorString != nullptr) *errorString = getStringFromFormat("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
+            if (errorString != nullptr) *errorString = format_string("Protocol::setFieldValue. Field '%s' is longer tha 64 bits!", fieldMetadata.name.c_str(), fieldMetadata.bitCount);
             return T{};
         }
 
-        memset(m_prealloc_rawBytes, 0, 65);
-        memcpy(m_prealloc_rawBytes, m_workingBuffer + fieldMetadata.firstByteInd, fieldMetadata.touchedBytesCount);
+        memset(m_prealloc_raw_bytes, 0, 65);
+        memcpy(m_prealloc_raw_bytes, m_working_buffer + fieldMetadata.firstByteInd, fieldMetadata.touchedBytesCount);
 
-        m_prealloc_finalBytes = m_prealloc_rawBytes;
-        m_prealloc_finalBytesCount = fieldMetadata.bytesCount;
+        m_prealloc_final_bytes = m_prealloc_raw_bytes;
+        m_prealloc_final_bytes_count = fieldMetadata.bytesCount;
         if (fieldMetadata.rightSpacing || fieldMetadata.leftSpacing) {
-            m_prealloc_rawBytes[0] &= fieldMetadata.firstMask;
+            m_prealloc_raw_bytes[0] &= fieldMetadata.firstMask;
             if (fieldMetadata.touchedBytesCount > 1)
-                m_prealloc_rawBytes[fieldMetadata.touchedBytesCount - 1] &= fieldMetadata.lastMask;
+                m_prealloc_raw_bytes[fieldMetadata.touchedBytesCount - 1] &= fieldMetadata.lastMask;
 
             if (fieldMetadata.rightSpacing) {
-                shiftRight(m_prealloc_rawBytes, fieldMetadata.touchedBytesCount, fieldMetadata.rightSpacing);
-                m_prealloc_finalBytes = m_prealloc_rawBytes + fieldMetadata.touchedBytesCount - fieldMetadata.bytesCount;
+                shift_right(m_prealloc_raw_bytes, fieldMetadata.touchedBytesCount, fieldMetadata.rightSpacing);
+                m_prealloc_final_bytes = m_prealloc_raw_bytes + fieldMetadata.touchedBytesCount - fieldMetadata.bytesCount;
             }
         }
 
         if (std::is_floating_point<T>::value) {
             if (fieldMetadata.bytesCount == 4)
-                return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_finalBytes));
+                return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_final_bytes));
             else if (fieldMetadata.bytesCount == 8)
-                return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_finalBytes));
+                return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_final_bytes));
         }
 
-        if (getIsMachineLittleEndian() != m_isLittleEndian)
+        if (get_is_host_little_endian() != m_is_little_endian)
             for (uint32_t i = 0; i < fieldMetadata.bytesCount / 2; ++i)
-                std::swap(m_prealloc_finalBytes[i], m_prealloc_finalBytes[fieldMetadata.bytesCount - i - 1]);
+                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[fieldMetadata.bytesCount - i - 1]);
 
         if (fieldMetadata.bytesCount > sizeof(T)) {
-            if (!getIsMachineLittleEndian()) {
-                m_prealloc_finalBytes += fieldMetadata.bytesCount - sizeof(T);
-                m_prealloc_finalBytesCount -= fieldMetadata.bytesCount - sizeof(T);
+            if (!get_is_host_little_endian()) {
+                m_prealloc_final_bytes += fieldMetadata.bytesCount - sizeof(T);
+                m_prealloc_final_bytes_count -= fieldMetadata.bytesCount - sizeof(T);
             }
         }
 
         if (std::is_signed_v<T>) {
-            if (!getIsMachineLittleEndian()) {
-                if (m_prealloc_finalBytes[0] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
-                    return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, fieldMetadata.bitCount)));
+            if (!get_is_host_little_endian()) {
+                if (m_prealloc_final_bytes[0] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
+                    return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bitCount)));
             } else {
                 if (fieldMetadata.bitCount < 8) {
-                    if (m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
-                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, fieldMetadata.bitCount)));
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
+                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bitCount)));
                 } else {
-                    if (m_prealloc_finalBytes[m_prealloc_finalBytesCount - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8))) {
-                        return (*reinterpret_cast<T*>(m_prealloc_finalBytes)) - ((uint64_t)1 << (std::min(m_prealloc_finalBytesCount * 8, fieldMetadata.bitCount)));
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8))) {
+                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bitCount)));
                     }
                 }
             }
         }
 
-        return *reinterpret_cast<T*>(m_prealloc_finalBytes);
+        return *reinterpret_cast<T*>(m_prealloc_final_bytes);
     }
 
-    static constexpr bool getIsMachineLittleEndian()
+    static constexpr bool get_is_host_little_endian()
     {
         constexpr uint16_t value = 0x1234;
         return static_cast<uint8_t>(value) == 0x34;
     }
 
     template<typename... Args>
-    static std::string getStringFromFormat(const std::string& format, Args... args)
+    static std::string format_string(const std::string& format, Args... args)
     {
         int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
         if (size_s <= 0) return format;
@@ -438,37 +437,37 @@ private:
         return std::string(buf.get(), buf.get() + size_s - 1);
     }
 
-    std::string intToStringWithLeadingZeros(int value, size_t length) const;
+    std::string int_to_str_leading_zeros(int value, size_t length) const;
 
-    void copyFrom(const protocol_serializer& other);
-    void moveFrom(protocol_serializer&& other);
+    void copy_from(const protocol_serializer& other);
+    void move_from(protocol_serializer&& other);
 
-    static void shiftLeft(unsigned char* buf, int len, unsigned char shift);
-    static void shiftRight(unsigned char* buf, int len, unsigned char shift);
+    static void shift_left(unsigned char* buf, int len, unsigned char shift);
+    static void shift_right(unsigned char* buf, int len, unsigned char shift);
 
-    static const std::map<unsigned char, unsigned char>& getRightMasks();
-    static const std::map<unsigned char, unsigned char>& getLeftMasks();
-    static const std::vector<std::string>& getHalfByteBinary();
+    static const std::map<unsigned char, unsigned char>& get_right_masks();
+    static const std::map<unsigned char, unsigned char>& get_left_masks();
+    static const std::vector<std::string>& get_half_byte_binary();
 
-    void reallocateInternalBuffer();
-    void updateInternalBuffer();
+    void reallocate_internal_buffer();
+    void update_internal_buffer();
 
-    std::unique_ptr<unsigned char[]> m_internalBuffer;
-    unsigned int m_internalBufferLength = 0;
-    unsigned char* m_externalBuffer = nullptr;
-    unsigned char* m_workingBuffer = nullptr;
-    BUFFER_SOURCE m_bufferSource;
+    std::unique_ptr<unsigned char[]> m_internal_buffer;
+    unsigned int m_internal_buffer_length = 0;
+    unsigned char* m_external_buffer = nullptr;
+    unsigned char* m_working_buffer = nullptr;
+    buffer_source m_buffer_source;
 
-    mutable unsigned char* m_prealloc_finalBytes = nullptr;
-    mutable unsigned int m_prealloc_finalBytesCount = 0;
+    mutable unsigned char* m_prealloc_final_bytes = nullptr;
+    mutable unsigned int m_prealloc_final_bytes_count = 0;
     mutable uint64_t m_prealloc_val = 0;
-    mutable unsigned char* m_prealloc_ptrToFirstCopyableMostSignificantByte = nullptr;
-    mutable unsigned char m_prealloc_rawBytes[65] = "";
-    mutable fields_metadata_t::const_iterator m_prealloc_fieldMetadataItt;
+    mutable unsigned char* m_prealloc_ptr_to_first_copyable_msb = nullptr; //msb - "Most significant byte"
+    mutable unsigned char m_prealloc_raw_bytes[65] = "";
+    mutable fields_metadata_t::const_iterator m_prealloc_metadata_itt;
 
     fields_list_t m_fields;
-    fields_metadata_t m_fieldsMetadata;
-    bool m_isLittleEndian;
+    fields_metadata_t m_fields_metadata;
+    bool m_is_little_endian;
 };
 
 }

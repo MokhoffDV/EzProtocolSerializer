@@ -32,20 +32,20 @@ void VisualizerWidget::visualize()
     using dvp = ez::protocol_serializer::data_visualization_params;
     int prevPosition = m_ui->getVisualizationOutputEdit->verticalScrollBar()->value();
     m_ui->getVisualizationOutputEdit->clear();
-    m_ui->getVisualizationOutputEdit->append(QString(m_ps->getVisualization(vp()
-                                                                            .setDrawHeader(m_ui->drawHeaderCheckbox->isChecked())
-                                                                            .setfirstLineNum(m_ui->firstLineNumSpinbox->value())
-                                                                            .setHorizontalBitMargin(m_ui->horizontalBitMarginSpinbox->value())
-                                                                            .setNameLinesCount(m_ui->namesLinesCountSpinbo->value())
-                                                                            .setPrintValues(m_ui->printValuesCheckbox->isChecked())).c_str()));
+    m_ui->getVisualizationOutputEdit->append(QString(m_ps->get_visualization(vp()
+                                                                            .set_draw_header(m_ui->drawHeaderCheckbox->isChecked())
+                                                                            .set_first_line_num(m_ui->firstLineNumSpinbox->value())
+                                                                            .set_horizontal_bit_margin(m_ui->horizontalBitMarginSpinbox->value())
+                                                                            .set_name_lines_count(m_ui->namesLinesCountSpinbo->value())
+                                                                            .set_print_values(m_ui->printValuesCheckbox->isChecked())).c_str()));
     m_ui->getVisualizationOutputEdit->verticalScrollBar()->setValue(prevPosition);
 
     prevPosition = m_ui->getDataVisualizationOutputEdit->verticalScrollBar()->value();
     m_ui->getDataVisualizationOutputEdit->clear();
-    m_ui->getDataVisualizationOutputEdit->append(QString(m_ps->getDataVisualization(dvp()
-                                                                                    .setfirstLineNum(m_ui->firstLineNum2Spinbox->value())
-                                                                                    .setBytesPerLine(m_ui->bytesPerLineSpinbox->value())
-                                                                                    .setBase(static_cast<dvp::BASE>(m_ui->baseCombobox->currentIndex()))
-                                                                                    .setSpacesBetweenBytes(m_ui->spacesBetweenBytesCheckbox->isChecked())).c_str()));
+    m_ui->getDataVisualizationOutputEdit->append(QString(m_ps->get_data_visualization(dvp()
+                                                                                    .set_first_line_num(m_ui->firstLineNum2Spinbox->value())
+                                                                                    .set_bytes_per_line(m_ui->bytesPerLineSpinbox->value())
+                                                                                    .set_base(static_cast<dvp::base>(m_ui->baseCombobox->currentIndex()))
+                                                                                    .set_spaces_between_bytes(m_ui->spacesBetweenBytesCheckbox->isChecked())).c_str()));
     m_ui->getDataVisualizationOutputEdit->verticalScrollBar()->setValue(prevPosition);
 }

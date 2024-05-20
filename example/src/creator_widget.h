@@ -18,7 +18,7 @@ public:
     CreatorFieldWidget(int index, QWidget* parent = nullptr);
     QString getName() const;
     unsigned int getBitCount() const;
-    ez::protocol_serializer::ASSOCIATED_TYPE getAssocType() const;
+    ez::protocol_serializer::associated_type getAssocType() const;
 private:
     int m_index;
     QLineEdit* m_nameEdit;

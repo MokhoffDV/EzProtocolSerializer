@@ -15,7 +15,7 @@ public:
     EditorWidget(QWidget* parent = nullptr);
     void setProtocolSerializer(ez::protocol_serializer* ps);
     void regenerate();
-    void readFieldValue(const QString& parameterName);
+    void read(const QString& parameterName);
 
 signals:
     void fieldValueChanged();
