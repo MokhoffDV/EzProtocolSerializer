@@ -37,7 +37,7 @@ public:
                       bool isMain,
                       QWidget* parent = nullptr);
 signals:
-    void fieldValueChanged(const QString& fieldName);
+    void fieldValueChanged(const QString& fieldName) const;
 
 private:
     friend class EditorWidget;
@@ -46,6 +46,7 @@ private:
     void switchBit(const QString& fieldName, const unsigned int bitInd);
     QString getFieldValueAsText();
     void syncBitButtonsToBuffer(unsigned char* buffer);
+    void processValueText(const QString& valueText) const;
 
     ez::protocol_serializer* m_ps;
     ez::protocol_serializer::field_metadata m_fieldMetadata;
