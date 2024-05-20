@@ -107,7 +107,7 @@ protocol_serializer::buffer_source protocol_serializer::get_buffer_source() cons
     return m_buffer_source;
 }
 
-const std::unique_ptr<unsigned char[]>& protocol_serializer::get_internal_buffer() const
+const ez::protocol_serializer::internal_buffer_ptr_t& protocol_serializer::get_internal_buffer() const
 {
     return m_internal_buffer;
 }
@@ -179,10 +179,11 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
         std::string lessSignificantHeader;
         std::string mostSignificantHeader;
         for (int i = 15; i >= 0; i--) {
+            const std::string bitSegment = "|" + std::string(vp.horizontal_bit_margin - 1, ' ') + int_to_str_leading_zeros(i, 2) + std::string(vp.horizontal_bit_margin, ' ');
             if (i < 8)
-                lessSignificantHeader += "|" + std::string(vp.horizontal_bit_margin - 1, ' ') + int_to_str_leading_zeros(i, 2) + std::string(vp.horizontal_bit_margin, ' ');
+                lessSignificantHeader += bitSegment;
             else
-                mostSignificantHeader += "|" + std::string(vp.horizontal_bit_margin - 1, ' ') + int_to_str_leading_zeros(i, 2) + std::string(vp.horizontal_bit_margin, ' ');
+                mostSignificantHeader += bitSegment;
         }
 
         if (vp.first_line_num >= 0)
@@ -362,7 +363,7 @@ ez::protocol_serializer::byte_ptr_t protocol_serializer::get_field_pointer(const
     }
 
     const field_metadata& field_init = m_prealloc_metadata_itt->second;
-    return m_working_buffer + field_init.firstByteInd;
+    return m_working_buffer + field_init.first_byte_ind;
 }
 
 bool protocol_serializer::append_field(const field_init& field_init, bool preserveInternalBufferValues)
@@ -382,7 +383,7 @@ bool protocol_serializer::append_field(const field_init& field_init, bool preser
     unsigned int firstBitIndex = 0;
     if (!m_fields.empty()) {
         const field_metadata lastFieldMetadata = m_fields_metadata.at(m_fields.back());
-        firstBitIndex = lastFieldMetadata.firstBitInd + lastFieldMetadata.bit_count;
+        firstBitIndex = lastFieldMetadata.first_bit_ind + lastFieldMetadata.bit_count;
     }
 
     m_fields.push_back(field_init.name);
@@ -566,7 +567,7 @@ void protocol_serializer::reallocate_internal_buffer()
 
     // Reallocate internal buffer
     const field_metadata& lastFieldMetadata = m_fields_metadata.find(m_fields.back())->second;
-    const unsigned int bits = lastFieldMetadata.firstBitInd + lastFieldMetadata.bit_count;
+    const unsigned int bits = lastFieldMetadata.first_bit_ind + lastFieldMetadata.bit_count;
     m_internal_buffer_length = bits / 8 + ((bits % 8) ? 1 : 0);
     m_internal_buffer.reset(new unsigned char[m_internal_buffer_length]);
     memset(m_internal_buffer.get(), 0, m_internal_buffer_length);
@@ -592,30 +593,30 @@ void protocol_serializer::update_internal_buffer()
         memcpy(m_internal_buffer.get(), oldBufferCopy.get(), std::min(m_internal_buffer_length, oldBufferLength));
 }
 
-protocol_serializer::field_metadata::field_metadata(const unsigned int firstBitInd, const unsigned int bit_count, const std::string& name, const visualization_type vis_type)
+protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const std::string& name, const visualization_type vis_type)
 {
     this->vis_type = vis_type;
     this->name = name;
-    this->firstBitInd = firstBitInd;
+    this->first_bit_ind = first_bit_ind;
     this->bit_count = bit_count;
-    bytesCount = bit_count / 8 + ((bit_count % 8) ? 1 : 0);
-    firstByteInd = firstBitInd / 8;
-    unsigned int lastByteInd = (firstBitInd + bit_count - 1) / 8;
-    touchedBytesCount = lastByteInd - firstByteInd + 1;
-    leftSpacing = firstBitInd % 8;
-    rightSpacing = (8 - (firstBitInd + bit_count) % 8) % 8;
+    bytes_count = bit_count / 8 + ((bit_count % 8) ? 1 : 0);
+    first_byte_ind = first_bit_ind / 8;
+    unsigned int lastByteInd = (first_bit_ind + bit_count - 1) / 8;
+    touched_bytes_count = lastByteInd - first_byte_ind + 1;
+    left_spacing = first_bit_ind % 8;
+    right_spacing = (8 - (first_bit_ind + bit_count) % 8) % 8;
 
-    firstMask = 0xFF;
-    lastMask = 0xFF;
+    first_mask = 0xFF;
+    last_mask = 0xFF;
 
-    if (touchedBytesCount == 1) {
-        firstMask = ~(get_left_masks().at(leftSpacing) | get_right_masks().at(rightSpacing));
+    if (touched_bytes_count == 1) {
+        first_mask = ~(get_left_masks().at(left_spacing) | get_right_masks().at(right_spacing));
         return;
     }
 
-    if (leftSpacing)
-        firstMask = get_right_masks().at(8 - leftSpacing);
+    if (left_spacing)
+        first_mask = get_right_masks().at(8 - left_spacing);
 
-    if (rightSpacing)
-        lastMask = get_left_masks().at(8 - rightSpacing);
+    if (right_spacing)
+        last_mask = get_left_masks().at(8 - right_spacing);
 }

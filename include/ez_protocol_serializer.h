@@ -36,16 +36,16 @@ public:
 
     struct field_metadata
     {
-        field_metadata(const unsigned int firstBitInd, const unsigned int bit_count, const std::string& name, const visualization_type vis_type = visualization_type::signed_integer);
-        unsigned int firstByteInd;
-        unsigned int bytesCount;
-        unsigned int touchedBytesCount;
-        unsigned int firstBitInd;
+        field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const std::string& name, const visualization_type vis_type = visualization_type::signed_integer);
+        unsigned int first_byte_ind;
+        unsigned int bytes_count;
+        unsigned int touched_bytes_count;
+        unsigned int first_bit_ind;
         unsigned int bit_count;
-        unsigned char leftSpacing;
-        unsigned char rightSpacing;
-        unsigned char firstMask;
-        unsigned char lastMask;
+        unsigned char left_spacing;
+        unsigned char right_spacing;
+        unsigned char first_mask;
+        unsigned char last_mask;
         std::string name;
         visualization_type vis_type;
     };
@@ -173,8 +173,8 @@ public:
         for (unsigned int i = 0; i < N; ++i) {
             if (localerror.length()) break;
 
-            unsigned int firstBitInd = field_init.firstBitInd + i * ghostFieldLength;
-            setGhost(firstBitInd, ghostFieldLength, array[i], &localerror);
+            unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
+            setGhost(first_bit_ind, ghostFieldLength, array[i], &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
@@ -195,8 +195,8 @@ public:
         for (unsigned int i = 0; i < N; ++i) {
             if (localerror.length()) break;
 
-            unsigned int firstBitInd = fieldFirstBit + i * ghostFieldLength;
-            setGhost(firstBitInd, ghostFieldLength, array[i], &localerror);
+            unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
+            setGhost(first_bit_ind, ghostFieldLength, array[i], &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
@@ -243,8 +243,8 @@ public:
         for (unsigned int i = 0; i < N; ++i) {
             if (localerror.length()) break;
 
-            unsigned int firstBitInd = field_init.firstBitInd + i * ghostFieldLength;
-            array[i] = readGhost<T>(firstBitInd, ghostFieldLength, &localerror);
+            unsigned int first_bit_ind = field_init.first_bit_ind + i * ghostFieldLength;
+            array[i] = readGhost<T>(first_bit_ind, ghostFieldLength, &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
@@ -265,8 +265,8 @@ public:
         for (unsigned int i = 0; i < N; ++i) {
             if (localerror.length()) break;
 
-            unsigned int firstBitInd = fieldFirstBit + i * ghostFieldLength;
-            array[i] = readGhost<T>(firstBitInd, ghostFieldLength, &localerror);
+            unsigned int first_bit_ind = fieldFirstBit + i * ghostFieldLength;
+            array[i] = readGhost<T>(first_bit_ind, ghostFieldLength, &localerror);
         }
         if (localerror.length())
             *errorString = localerror;
@@ -306,40 +306,40 @@ private:
             m_prealloc_val = value;
             m_prealloc_ptr_to_first_copyable_msb = (byte_ptr_t)&m_prealloc_val;
             if (!get_is_host_little_endian()) {
-                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - fieldMetadata.bytesCount;
+                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - fieldMetadata.bytes_count;
             }
-            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, fieldMetadata.bytesCount);
+            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, fieldMetadata.bytes_count);
             if (get_is_host_little_endian() != m_is_little_endian)
-                for (uint32_t i = 0; i < fieldMetadata.bytesCount / 2; ++i)
-                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[fieldMetadata.bytesCount - 1 - i]);
+                for (uint32_t i = 0; i < fieldMetadata.bytes_count / 2; ++i)
+                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[fieldMetadata.bytes_count - 1 - i]);
         } else if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bytesCount == 4) {
+            if (fieldMetadata.bytes_count == 4) {
                 float val = value;
                 memcpy(m_prealloc_raw_bytes, &val, 4);
-            } else if (fieldMetadata.bytesCount == 8) {
+            } else if (fieldMetadata.bytes_count == 8) {
                 double val = value;
                 memcpy(m_prealloc_raw_bytes, &val, 8);
             }
         }
 
-        if (fieldMetadata.leftSpacing == 0 && fieldMetadata.rightSpacing == 0) {
-            memcpy(m_working_buffer + fieldMetadata.firstByteInd, m_prealloc_raw_bytes, fieldMetadata.bytesCount);
+        if (fieldMetadata.left_spacing == 0 && fieldMetadata.right_spacing == 0) {
+            memcpy(m_working_buffer + fieldMetadata.first_byte_ind, m_prealloc_raw_bytes, fieldMetadata.bytes_count);
             return;
         }
 
         m_prealloc_final_bytes = m_prealloc_raw_bytes;
-        if (fieldMetadata.rightSpacing) {
-            shift_right(m_prealloc_raw_bytes, fieldMetadata.bytesCount + 1, 8 - fieldMetadata.rightSpacing);
+        if (fieldMetadata.right_spacing) {
+            shift_right(m_prealloc_raw_bytes, fieldMetadata.bytes_count + 1, 8 - fieldMetadata.right_spacing);
             if (unsigned char transferableBitsCount = fieldMetadata.bit_count % 8)
-                if (8 - fieldMetadata.rightSpacing >= transferableBitsCount)
+                if (8 - fieldMetadata.right_spacing >= transferableBitsCount)
                     m_prealloc_final_bytes = m_prealloc_raw_bytes + 1;
         }
 
         unsigned char mask = 0;
-        for (uint32_t i = 0; i < fieldMetadata.touchedBytesCount; ++i) {
-            mask = i == 0 ? fieldMetadata.firstMask : i != fieldMetadata.touchedBytesCount - 1 ? 0xFF : fieldMetadata.lastMask;
-            m_working_buffer[fieldMetadata.firstByteInd + i] &= ~mask;
-            m_working_buffer[fieldMetadata.firstByteInd + i] |= m_prealloc_final_bytes[i] & mask;
+        for (uint32_t i = 0; i < fieldMetadata.touched_bytes_count; ++i) {
+            mask = i == 0 ? fieldMetadata.first_mask : i != fieldMetadata.touched_bytes_count - 1 ? 0xFF : fieldMetadata.last_mask;
+            m_working_buffer[fieldMetadata.first_byte_ind + i] &= ~mask;
+            m_working_buffer[fieldMetadata.first_byte_ind + i] |= m_prealloc_final_bytes[i] & mask;
         }
     }
 
@@ -370,49 +370,49 @@ private:
         }
 
         memset(m_prealloc_raw_bytes, 0, 65);
-        memcpy(m_prealloc_raw_bytes, m_working_buffer + fieldMetadata.firstByteInd, fieldMetadata.touchedBytesCount);
+        memcpy(m_prealloc_raw_bytes, m_working_buffer + fieldMetadata.first_byte_ind, fieldMetadata.touched_bytes_count);
 
         m_prealloc_final_bytes = m_prealloc_raw_bytes;
-        m_prealloc_final_bytes_count = fieldMetadata.bytesCount;
-        if (fieldMetadata.rightSpacing || fieldMetadata.leftSpacing) {
-            m_prealloc_raw_bytes[0] &= fieldMetadata.firstMask;
-            if (fieldMetadata.touchedBytesCount > 1)
-                m_prealloc_raw_bytes[fieldMetadata.touchedBytesCount - 1] &= fieldMetadata.lastMask;
+        m_prealloc_final_bytes_count = fieldMetadata.bytes_count;
+        if (fieldMetadata.right_spacing || fieldMetadata.left_spacing) {
+            m_prealloc_raw_bytes[0] &= fieldMetadata.first_mask;
+            if (fieldMetadata.touched_bytes_count > 1)
+                m_prealloc_raw_bytes[fieldMetadata.touched_bytes_count - 1] &= fieldMetadata.last_mask;
 
-            if (fieldMetadata.rightSpacing) {
-                shift_right(m_prealloc_raw_bytes, fieldMetadata.touchedBytesCount, fieldMetadata.rightSpacing);
-                m_prealloc_final_bytes = m_prealloc_raw_bytes + fieldMetadata.touchedBytesCount - fieldMetadata.bytesCount;
+            if (fieldMetadata.right_spacing) {
+                shift_right(m_prealloc_raw_bytes, fieldMetadata.touched_bytes_count, fieldMetadata.right_spacing);
+                m_prealloc_final_bytes = m_prealloc_raw_bytes + fieldMetadata.touched_bytes_count - fieldMetadata.bytes_count;
             }
         }
 
         if (std::is_floating_point<T>::value) {
-            if (fieldMetadata.bytesCount == 4)
+            if (fieldMetadata.bytes_count == 4)
                 return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_final_bytes));
-            else if (fieldMetadata.bytesCount == 8)
+            else if (fieldMetadata.bytes_count == 8)
                 return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_final_bytes));
         }
 
         if (get_is_host_little_endian() != m_is_little_endian)
-            for (uint32_t i = 0; i < fieldMetadata.bytesCount / 2; ++i)
-                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[fieldMetadata.bytesCount - i - 1]);
+            for (uint32_t i = 0; i < fieldMetadata.bytes_count / 2; ++i)
+                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[fieldMetadata.bytes_count - i - 1]);
 
-        if (fieldMetadata.bytesCount > sizeof(T)) {
+        if (fieldMetadata.bytes_count > sizeof(T)) {
             if (!get_is_host_little_endian()) {
-                m_prealloc_final_bytes += fieldMetadata.bytesCount - sizeof(T);
-                m_prealloc_final_bytes_count -= fieldMetadata.bytesCount - sizeof(T);
+                m_prealloc_final_bytes += fieldMetadata.bytes_count - sizeof(T);
+                m_prealloc_final_bytes_count -= fieldMetadata.bytes_count - sizeof(T);
             }
         }
 
         if (std::is_signed_v<T>) {
             if (!get_is_host_little_endian()) {
-                if (m_prealloc_final_bytes[0] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
+                if (m_prealloc_final_bytes[0] & (1 << (7 - (fieldMetadata.left_spacing + fieldMetadata.right_spacing) % 8)))
                     return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
             } else {
                 if (fieldMetadata.bit_count < 8) {
-                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8)))
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.left_spacing + fieldMetadata.right_spacing) % 8)))
                         return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
                 } else {
-                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.leftSpacing + fieldMetadata.rightSpacing) % 8))) {
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (fieldMetadata.left_spacing + fieldMetadata.right_spacing) % 8))) {
                         return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, fieldMetadata.bit_count)));
                     }
                 }
