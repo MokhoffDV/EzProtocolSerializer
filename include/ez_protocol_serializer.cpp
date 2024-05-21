@@ -64,6 +64,7 @@ void ez::protocol_serializer::move_from(protocol_serializer&& other)
     // Move internal buffer
     m_internal_buffer_length = other.m_internal_buffer_length;
     m_internal_buffer = std::move(other.m_internal_buffer);
+    other.m_internal_buffer_length = 0;
 
     // Move other things
     m_external_buffer = other.m_external_buffer;
