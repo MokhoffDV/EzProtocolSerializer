@@ -2,7 +2,7 @@
 #define VISUALIZER_WIDGET_H
 
 #include "ui_visualizer_widget.h"
-#include "ez_protocol_serializer.h"
+#include <ez_protocol_serializer.h>
 #include <QWidget>
 
 class VisualizerWidget : public QWidget

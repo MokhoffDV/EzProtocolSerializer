@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ez_protocol_serializer.h"
+#include <ez_protocol_serializer.h>
 
 using ez::protocol_serializer;
 using buffer_source = ez::protocol_serializer::buffer_source;

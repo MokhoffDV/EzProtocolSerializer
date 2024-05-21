@@ -1,7 +1,7 @@
 #ifndef EDITOR_WIDGET_H
 #define EDITOR_WIDGET_H
 
-#include "ez_protocol_serializer.h"
+#include <ez_protocol_serializer.h>
 
 #include <QWidget>
 #include <QMap>

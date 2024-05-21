@@ -1,7 +1,7 @@
 #ifndef CREATOR_WIDGET_H
 #define CREATOR_WIDGET_H
 
-#include "ez_protocol_serializer.h"
+#include <ez_protocol_serializer.h>
 
 #include <QLineEdit>
 #include <QComboBox>
