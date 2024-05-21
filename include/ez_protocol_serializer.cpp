@@ -143,7 +143,7 @@ ez::protocol_serializer::field_metadata ez::protocol_serializer::get_field_metad
 {
     const fields_metadata_t::const_iterator itt = m_fields_metadata.find(name);
     if (itt == m_fields_metadata.cend())
-        return field_metadata(0, 0, "");
+        return field_metadata(0, 0);
 
     return itt->second;
 }
@@ -206,7 +206,7 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
     for (const std::string& field_name : m_fields) {
         const field_metadata& field_metadata = m_fields_metadata.find(field_name)->second;
         const size_t available_field_length = field_metadata.bit_count * bit_text_len - 1;
-        std::string name = field_metadata.name;
+        std::string name = field_name;
         std::vector<std::string> name_linesForField(vp.name_lines_count);
 
         for (uint32_t i = 0; i < vp.name_lines_count; ++i) {
@@ -223,18 +223,18 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
         if (vp.print_values) {
             std::string value_line;
             if (field_metadata.vis_type == visualization_type::floating_point && (field_metadata.bit_count == 32 || field_metadata.bit_count == 64)) {
-                if (field_metadata.bit_count == 32) value_line = "=" + std::to_string(read<float>(field_metadata.name));
-                else if (field_metadata.bit_count == 64) value_line = "=" + std::to_string(read<double>(field_metadata.name));
+                if (field_metadata.bit_count == 32) value_line = "=" + std::to_string(read<float>(field_name));
+                else if (field_metadata.bit_count == 64) value_line = "=" + std::to_string(read<double>(field_name));
             } else if (field_metadata.vis_type == visualization_type::signed_integer) {
-                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<int8_t>(field_metadata.name));
-                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<int16_t>(field_metadata.name));
-                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<int32_t>(field_metadata.name));
-                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<int64_t>(field_metadata.name));
+                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<int8_t>(field_name));
+                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<int16_t>(field_name));
+                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<int32_t>(field_name));
+                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<int64_t>(field_name));
             } else {
-                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<uint8_t>(field_metadata.name));
-                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<uint16_t>(field_metadata.name));
-                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<uint32_t>(field_metadata.name));
-                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<uint64_t>(field_metadata.name));
+                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<uint8_t>(field_name));
+                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<uint16_t>(field_name));
+                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<uint32_t>(field_name));
+                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<uint64_t>(field_name));
             }
 
             value_line = value_line.substr(0, available_field_length);
@@ -385,7 +385,7 @@ ez::protocol_serializer::result_code protocol_serializer::append_field(const fie
     }
 
     m_fields.push_back(field_init.name);
-    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(first_bit_index, field_init.bit_count, field_init.name, field_init.vis_type)));
+    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(first_bit_index, field_init.bit_count, field_init.vis_type)));
 
     if (preserve_internal_buffer_values)
         update_internal_buffer();
@@ -403,7 +403,7 @@ ez::protocol_serializer::result_code protocol_serializer::append_protocol(const 
 
     for (const std::string& field_name : other.m_fields) {
         const field_metadata& field_metadata = other.m_fields_metadata.find(field_name)->second;
-        append_field(protocol_serializer::field_init{field_metadata.name, field_metadata.bit_count}, preserve_internal_buffer_values);
+        append_field(protocol_serializer::field_init{field_name, field_metadata.bit_count}, preserve_internal_buffer_values);
     }
 
     return result_code::ok;
@@ -439,7 +439,7 @@ ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const
             return result_code::bad_input;
 
         field_metadata& metadata_ref = metadata_itt->second;
-        metadata_ref = field_metadata(first_bit_index, metadata_ref.bit_count, *name_itt, metadata_ref.vis_type);
+        metadata_ref = field_metadata(first_bit_index, metadata_ref.bit_count, metadata_ref.vis_type);
         first_bit_index += metadata_ref.bit_count;
         ++name_itt;
     }
@@ -624,10 +624,9 @@ void ez::protocol_serializer::set_result(result_code* result_ptr, const result_c
     *result_ptr = code;
 }
 
-protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const std::string& name, const visualization_type vis_type)
+protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const visualization_type vis_type)
 {
     this->vis_type = vis_type;
-    this->name = name;
     this->first_bit_ind = first_bit_ind;
     this->bit_count = bit_count;
     bytes_count = bit_count / 8 + ((bit_count % 8) ? 1 : 0);

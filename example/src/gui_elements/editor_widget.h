@@ -34,6 +34,7 @@ class EditorFieldWidget : public QWidget
     Q_OBJECT
 public:
     EditorFieldWidget(ez::protocol_serializer* ps,
+                      const std::string& fieldName,
                       const ez::protocol_serializer::field_metadata& fieldMetadata,
                       const unsigned int startBitInd,
                       const unsigned int lastBitInd,
@@ -52,6 +53,7 @@ private:
     void processValueText(const QString& valueText) const;
 
     ez::protocol_serializer* m_ps;
+    std::string m_fieldName;
     ez::protocol_serializer::field_metadata m_fieldMetadata;
     unsigned int m_firstBit;
     unsigned int m_lastBit;

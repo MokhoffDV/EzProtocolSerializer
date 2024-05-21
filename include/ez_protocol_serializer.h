@@ -44,7 +44,7 @@ public:
 
     struct field_metadata
     {
-        field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const std::string& name, const visualization_type vis_type = visualization_type::signed_integer);
+        field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const visualization_type vis_type = visualization_type::signed_integer);
         unsigned int first_byte_ind;
         unsigned int bytes_count;
         unsigned int touched_bytes_count;
@@ -54,7 +54,6 @@ public:
         unsigned char right_spacing;
         unsigned char first_mask;
         unsigned char last_mask;
-        std::string name;
         visualization_type vis_type;
     };
 
@@ -153,7 +152,7 @@ public:
     template<class T>
     result_code write_ghost(const unsigned int field_first_bit, const unsigned int field_bit_count, const T& value)
     {
-        return _write(field_metadata(field_first_bit, field_bit_count, "<field_ghost>"), value);
+        return _write(field_metadata(field_first_bit, field_bit_count), value);
     }
 
     template<class T, size_t N>
@@ -209,7 +208,7 @@ public:
     template<class T>
     T read_ghost(const unsigned int field_first_bit, const unsigned int field_bit_count, result_code* result = nullptr) const
     {
-        return _read<T>(field_metadata(field_first_bit, field_bit_count, "<field_ghost>"), result);
+        return _read<T>(field_metadata(field_first_bit, field_bit_count), result);
     }
 
     template<class T, size_t N>

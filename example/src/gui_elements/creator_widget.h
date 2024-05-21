@@ -19,6 +19,7 @@ public:
     QString getName() const;
     unsigned int getBitCount() const;
     ez::protocol_serializer::visualization_type getVisualizationType() const;
+
 private:
     int m_index;
     QLineEdit* m_nameEdit;

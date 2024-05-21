@@ -78,6 +78,7 @@ void EditorWidget::regenerate()
             if (fieldWidgetEndsHere) {
                 if (mainFieldWidget == nullptr) {
                     mainFieldWidget = new EditorFieldWidget(m_ps,
+                                                            fieldName,
                                                             fieldMetadata,
                                                             firstBitIndInsideCurrentWord,
                                                             currentBitInd,
@@ -85,6 +86,7 @@ void EditorWidget::regenerate()
                     rowsLayout[currentWordInd]->addWidget(mainFieldWidget);
                 } else {
                     EditorFieldWidget* wgt = new EditorFieldWidget(m_ps,
+                                                                   fieldName,
                                                                    fieldMetadata,
                                                                    firstBitIndInsideCurrentWord,
                                                                    currentBitInd,
@@ -116,7 +118,7 @@ void EditorWidget::regenerate()
 
             currentWordInd = (currentBitInd) / 16;
         }
-        m_parentFieldWidgets.insert(QString(fieldMetadata.name.c_str()), mainFieldWidget);
+        m_parentFieldWidgets.insert(QString(fieldName.c_str()), mainFieldWidget);
     }
 
     // Get summ of stretches of the last row to check if last row is complete
@@ -167,6 +169,7 @@ void EditorWidget::read(const QString& parameterName)
 }
 
 EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
+                                     const std::string& fieldName,
                                      const ez::protocol_serializer::field_metadata& fieldMetadata,
                                      const unsigned int startBitInd,
                                      const unsigned int lastBitInd,
@@ -174,6 +177,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
                                      QWidget* parent)
     : QWidget(parent)
     , m_ps(ps)
+    , m_fieldName(fieldName)
     , m_fieldMetadata(fieldMetadata)
     , m_firstBit(startBitInd)
     , m_lastBit(lastBitInd)
@@ -229,12 +233,12 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
             processValueText(m_valueEdit->text());
         }, Qt::DirectConnection);
 
-        QLabel* name = new QLabel(fieldMetadata.name.c_str());
+        QLabel* name = new QLabel(m_fieldName.c_str());
         QFont font = name->font();
         font.setFamily("monospace");
         font.setPointSize(8);
         name->setFont(font);
-        name->setToolTip(fieldMetadata.name.c_str());
+        name->setToolTip(m_fieldName.c_str());
         name->setMinimumWidth(1);
         name->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
@@ -269,7 +273,7 @@ EditorFieldWidget::EditorFieldWidget(ez::protocol_serializer* ps,
         QPushButton* bitButton = new QPushButton();
         bitButton->setMinimumWidth(1);
         bitButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-        bitButton->setProperty("field_name", m_fieldMetadata.name.c_str());
+        bitButton->setProperty("field_name", m_fieldName.c_str());
         bitButton->setProperty("bit_index", i);
 
         connect(bitButton, &QPushButton::clicked, this, [this]()
@@ -299,7 +303,7 @@ void EditorFieldWidget::processValueText(const QString& valueText) const
     if (m_valueEdit->validator()->validate(textToCheck, unused) != QValidator::Acceptable)
         return;
 
-    const QString fieldName = m_fieldMetadata.name.c_str();
+    const QString fieldName = m_fieldName.c_str();
     if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point) {
         if (m_fieldMetadata.bit_count == 32)
             m_ps->write(fieldName.toStdString(), textToCheck.toFloat());
@@ -348,18 +352,18 @@ void EditorFieldWidget::switchBit(const QString& fieldName, const unsigned int b
 QString EditorFieldWidget::getFieldValueAsText()
 {
     if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point && (m_fieldMetadata.bit_count == 32 || m_fieldMetadata.bit_count == 64)) {
-        if (m_fieldMetadata.bit_count == 32)      return QString::number(m_ps->read<float>(m_fieldMetadata.name), 'f', 6);
-        else if (m_fieldMetadata.bit_count == 64) return QString::number(m_ps->read<double>(m_fieldMetadata.name), 'f', 6);
+        if (m_fieldMetadata.bit_count == 32)      return QString::number(m_ps->read<float>(m_fieldName), 'f', 6);
+        else if (m_fieldMetadata.bit_count == 64) return QString::number(m_ps->read<double>(m_fieldName), 'f', 6);
     } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer) {
-        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<int8_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<int16_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<int32_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<int64_t>(m_fieldMetadata.name));
+        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<int8_t>(m_fieldName));
+        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<int16_t>(m_fieldName));
+        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<int32_t>(m_fieldName));
+        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<int64_t>(m_fieldName));
     } else {
-        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<uint8_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<uint16_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<uint32_t>(m_fieldMetadata.name));
-        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<uint64_t>(m_fieldMetadata.name));
+        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<uint8_t>(m_fieldName));
+        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<uint16_t>(m_fieldName));
+        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<uint32_t>(m_fieldName));
+        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<uint64_t>(m_fieldName));
     }
     return "";
 }
