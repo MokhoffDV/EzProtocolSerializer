@@ -1,5 +1,5 @@
 #include "editor_widget.h"
-#include "validators.h"
+#include "../utils/validators.h"
 
 #include <QLabel>
 #include <QLineEdit>

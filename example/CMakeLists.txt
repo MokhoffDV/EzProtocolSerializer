@@ -35,24 +35,24 @@ set(EZ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(EZ_SOURCES 	"${EZ_SOURCES_DIR}/main.cpp"
-				"${EZ_SOURCES_DIR}/main_window.cpp"
-				"${EZ_SOURCES_DIR}/creator_widget.cpp"
-				"${EZ_SOURCES_DIR}/editor_widget.cpp"
-				"${EZ_SOURCES_DIR}/visualizer_widget.cpp"
-				"${EZ_SOURCES_DIR}/validators.cpp"
+				"${EZ_SOURCES_DIR}/gui_elements/main_window.cpp"
+				"${EZ_SOURCES_DIR}/gui_elements/creator_widget.cpp"
+				"${EZ_SOURCES_DIR}/gui_elements/editor_widget.cpp"
+				"${EZ_SOURCES_DIR}/gui_elements/visualizer_widget.cpp"
+				"${EZ_SOURCES_DIR}/utils/validators.cpp"
 				"${EZ_INCLUDE_DIR}/ez_protocol_serializer.cpp")
-set(EZ_HEADERS 	"${EZ_SOURCES_DIR}/main_window.h"
-				"${EZ_SOURCES_DIR}/creator_widget.h"
-				"${EZ_SOURCES_DIR}/editor_widget.h"
-				"${EZ_SOURCES_DIR}/visualizer_widget.h"
+set(EZ_HEADERS 	"${EZ_SOURCES_DIR}/gui_elements/main_window.h"
+				"${EZ_SOURCES_DIR}/gui_elements/creator_widget.h"
+				"${EZ_SOURCES_DIR}/gui_elements/editor_widget.h"
+				"${EZ_SOURCES_DIR}/gui_elements/visualizer_widget.h"
 				"${EZ_INCLUDE_DIR}/ez_protocol_serializer.h")
-set(EZ_MOC_SOURCES 	"${EZ_SOURCES_DIR}/main_window.h"
-					"${EZ_SOURCES_DIR}/creator_widget.h"
-					"${EZ_SOURCES_DIR}/editor_widget.h"
-					"${EZ_SOURCES_DIR}/visualizer_widget.h"
-					"${EZ_SOURCES_DIR}/validators.h")
-set(EZ_UIC_SOURCES 	"${EZ_SOURCES_DIR}/main_window.ui"
-					"${EZ_SOURCES_DIR}/visualizer_widget.ui")
+set(EZ_MOC_SOURCES 	"${EZ_SOURCES_DIR}/gui_elements/main_window.h"
+					"${EZ_SOURCES_DIR}/gui_elements/creator_widget.h"
+					"${EZ_SOURCES_DIR}/gui_elements/editor_widget.h"
+					"${EZ_SOURCES_DIR}/gui_elements/visualizer_widget.h"
+					"${EZ_SOURCES_DIR}/utils/validators.h")
+set(EZ_UIC_SOURCES 	"${EZ_SOURCES_DIR}/gui_elements/main_window.ui"
+					"${EZ_SOURCES_DIR}/gui_elements/visualizer_widget.ui")
 source_group("Source Files" FILES ${EZ_SOURCES})
 source_group("Header Files" FILES ${EZ_HEADERS})
 
@@ -67,6 +67,7 @@ endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 add_executable(${EZ_EXECUTABLE_NAME} ${EZ_SOURCES} ${EZ_HEADERS} ${EZ_MOC_SOURCES} ${EZ_UIC_SOURCES})
 set_target_properties(${EZ_EXECUTABLE_NAME} PROPERTIES AUTOGEN_BUILD_DIR "${EZ_SOURCES_DIR}/autogen")
 target_link_libraries(${EZ_EXECUTABLE_NAME} ${EZ_FOUND_QT_VERSION}::Core ${EZ_FOUND_QT_VERSION}::Gui ${EZ_FOUND_QT_VERSION}::Widgets)
+target_include_directories(${EZ_EXECUTABLE_NAME} PRIVATE ${EZ_INCLUDE_DIR})
 
 # Set up compiler options
 if(MSVC)
