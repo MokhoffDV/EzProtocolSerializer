@@ -15,9 +15,15 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 # Set up executable
+set(EZ_SOURCES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(EZ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+set(EZ_SOURCES 	"${EZ_SOURCES_DIR}/ez_protocol_serializer_tests.cpp"
+				"${EZ_INCLUDE_DIR}/ez_protocol_serializer.cpp")
+set(EZ_HEADERS 	"${EZ_INCLUDE_DIR}/ez_protocol_serializer.h")
 set(EXECUTABLE_NAME ${PROJECT_NAME})
-add_executable(${EXECUTABLE_NAME} ez_protocol_serializer_tests.cpp)
+add_executable(${EXECUTABLE_NAME} ${EZ_SOURCES} ${EZ_HEADERS})
 target_link_libraries(${EXECUTABLE_NAME} GTest::gtest_main)
+target_include_directories(${EXECUTABLE_NAME} PRIVATE ${EZ_INCLUDE_DIR})
 
 # Discover tests
 include(GoogleTest)
