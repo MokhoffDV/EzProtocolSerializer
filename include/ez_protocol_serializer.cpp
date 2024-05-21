@@ -415,19 +415,39 @@ ez::protocol_serializer::result_code ez::protocol_serializer::remove_field(const
     if (m_prealloc_metadata_itt == m_fields_metadata.end())
         return result_code::field_not_found;
 
-    for (auto itt = m_fields.begin(); itt != m_fields.end(); ++itt) {
-        if (*itt == name) {
-            m_fields.erase(itt);
-            m_fields_metadata.erase(name);
-
-            if (preserve_internal_buffer_values)
-                update_internal_buffer();
-            else
-                reallocate_internal_buffer();
-
-            return result_code::ok;
+    bool removed = false;
+    unsigned int first_bit_index = 0;
+    for (auto name_itt = m_fields.begin(); name_itt != m_fields.end();) {
+        // Iterate until we find field to remove
+        if (!removed) {
+            if (*name_itt == name) {
+                name_itt = m_fields.erase(name_itt);
+                first_bit_index = m_fields_metadata.find(name)->second.first_bit_ind;
+                m_fields_metadata.erase(name);
+                removed = true;
+            } else {
+                ++name_itt;
+            }
+            continue;
         }
+
+        // Field was removed. Recalculate metadata of all subsequent fields
+        //(operator[] will not work here since field_metadata has no default constructor)
+        fields_metadata_t::iterator metadata_itt = m_fields_metadata.find(*name_itt);
+        // Should never happen
+        if (metadata_itt == m_fields_metadata.end())
+            return result_code::bad_input;
+
+        field_metadata& metadata_ref = metadata_itt->second;
+        metadata_ref = field_metadata(first_bit_index, metadata_ref.bit_count, *name_itt, metadata_ref.vis_type);
+        first_bit_index += metadata_ref.bit_count;
+        ++name_itt;
     }
+
+    if (preserve_internal_buffer_values)
+        update_internal_buffer();
+    else
+        reallocate_internal_buffer();
 
     return result_code::ok;
 }
@@ -583,7 +603,7 @@ void protocol_serializer::update_internal_buffer()
 {
     // Create a copy of current internal buffer
     const unsigned int old_buffer_length = m_internal_buffer_length;
-    std::unique_ptr<unsigned char[]> old_buffer_copy;
+    internal_buffer_ptr_t old_buffer_copy;
     if (m_internal_buffer != nullptr) {
         old_buffer_copy.reset(new unsigned char[old_buffer_length]);
         memcpy(old_buffer_copy.get(), m_internal_buffer.get(), old_buffer_length);
