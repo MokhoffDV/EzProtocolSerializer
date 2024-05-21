@@ -7,6 +7,9 @@ html/
 latex/
 autogen/
 build-*/
+tests/_deps
+tests/Debug
+tests/lib/Debug
 moc_*.cpp*
 *.vcxproj
 *.vcxproj.user
