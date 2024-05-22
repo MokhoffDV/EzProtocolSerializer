@@ -122,6 +122,11 @@ public:
     // Byte order for multi-byte integers
     void set_is_little_endian(const bool is_little_endian);
     bool get_is_little_endian() const;
+    static constexpr bool get_is_host_little_endian()
+    {
+        constexpr uint16_t value = 0x1234;
+        return static_cast<uint8_t>(value) == 0x34;
+    }
 
     // Buffers
     void                         set_buffer_source(const buffer_source buffer_source);
@@ -401,12 +406,6 @@ private:
 
         set_result(result, result_code::ok);
         return *reinterpret_cast<T*>(m_prealloc_final_bytes);
-    }
-
-    static constexpr bool get_is_host_little_endian()
-    {
-        constexpr uint16_t value = 0x1234;
-        return static_cast<uint8_t>(value) == 0x34;
     }
 
     template<typename... Args>

@@ -219,12 +219,26 @@ TEST(Modifying, Endiannes)
 {
     protocol_serializer ps;
 
+    // Check if host endiannes is determined correctly
+    unsigned char shortBytes[2];
+    const uint16_t shortValue = 1;
+    memcpy(shortBytes, &shortValue, 2);
+    EXPECT_EQ(static_cast<bool>(shortBytes[0]), protocol_serializer::get_is_host_little_endian());
+
+    // Check if protocol endiannes is being correctly changed
     ps.set_is_little_endian(true);
     EXPECT_EQ(ps.get_is_little_endian(), true);
     ps.set_is_little_endian(false);
     EXPECT_EQ(ps.get_is_little_endian(), false);
     ps.set_is_little_endian(true);
     EXPECT_EQ(ps.get_is_little_endian(), true);
+
+    // Check if values are interpreted correctly depending on endiannes
+    ps.set_is_little_endian(true);
+    ps.append_field({"field", 16});
+    ps.write("field", shortValue);
+    ps.set_is_little_endian(false);
+    EXPECT_EQ(ps.read<uint16_t>("field"), 256);
 }
 
 TEST(Modifying, ProtocolLayout)
