@@ -222,19 +222,15 @@ std::string protocol_serializer::get_visualization(const visualization_params& v
 
         if (vp.print_values) {
             std::string value_line;
-            if (field_metadata.vis_type == visualization_type::floating_point && (field_metadata.bit_count == 32 || field_metadata.bit_count == 64)) {
-                if (field_metadata.bit_count == 32) value_line = "=" + std::to_string(read<float>(field_name));
-                else if (field_metadata.bit_count == 64) value_line = "=" + std::to_string(read<double>(field_name));
+            if (field_metadata.vis_type == visualization_type::floating_point) {
+                if (field_metadata.bit_count == 32)
+                    value_line = "=" + std::to_string(read<float>(field_name));
+                else if (field_metadata.bit_count == 64)
+                    value_line = "=" + std::to_string(read<double>(field_name));
             } else if (field_metadata.vis_type == visualization_type::signed_integer) {
-                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<int8_t>(field_name));
-                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<int16_t>(field_name));
-                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<int32_t>(field_name));
-                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<int64_t>(field_name));
+                value_line = "=" + std::to_string(read<int64_t>(field_name));
             } else {
-                if (field_metadata.bit_count <= 8)  value_line = "=" + std::to_string(read<uint8_t>(field_name));
-                else if (field_metadata.bit_count <= 16) value_line = "=" + std::to_string(read<uint16_t>(field_name));
-                else if (field_metadata.bit_count <= 32) value_line = "=" + std::to_string(read<uint32_t>(field_name));
-                else if (field_metadata.bit_count <= 64) value_line = "=" + std::to_string(read<uint64_t>(field_name));
+                value_line = "=" + std::to_string(read<uint64_t>(field_name));
             }
 
             value_line = value_line.substr(0, available_field_length);

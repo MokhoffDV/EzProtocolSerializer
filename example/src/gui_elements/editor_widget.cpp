@@ -351,19 +351,15 @@ void EditorFieldWidget::switchBit(const QString& fieldName, const unsigned int b
 
 QString EditorFieldWidget::getFieldValueAsText()
 {
-    if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point && (m_fieldMetadata.bit_count == 32 || m_fieldMetadata.bit_count == 64)) {
-        if (m_fieldMetadata.bit_count == 32)      return QString::number(m_ps->read<float>(m_fieldName), 'f', 6);
-        else if (m_fieldMetadata.bit_count == 64) return QString::number(m_ps->read<double>(m_fieldName), 'f', 6);
+    if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::floating_point) {
+        if (m_fieldMetadata.bit_count == 32)
+            return QString::number(m_ps->read<float>(m_fieldName), 'f', 6);
+        else if (m_fieldMetadata.bit_count == 64)
+            return QString::number(m_ps->read<double>(m_fieldName), 'f', 6);
     } else if (m_fieldMetadata.vis_type == ez::protocol_serializer::visualization_type::signed_integer) {
-        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<int8_t>(m_fieldName));
-        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<int16_t>(m_fieldName));
-        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<int32_t>(m_fieldName));
-        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<int64_t>(m_fieldName));
+        return QString::number(m_ps->read<int64_t>(m_fieldName));
     } else {
-        if (m_fieldMetadata.bit_count <= 8)       return QString::number(m_ps->read<uint8_t>(m_fieldName));
-        else if (m_fieldMetadata.bit_count <= 16) return QString::number(m_ps->read<uint16_t>(m_fieldName));
-        else if (m_fieldMetadata.bit_count <= 32) return QString::number(m_ps->read<uint32_t>(m_fieldName));
-        else if (m_fieldMetadata.bit_count <= 64) return QString::number(m_ps->read<uint64_t>(m_fieldName));
+        return QString::number(m_ps->read<uint64_t>(m_fieldName));
     }
     return "";
 }
