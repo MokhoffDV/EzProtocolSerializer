@@ -27,7 +27,7 @@ std::vector<T> generateEquallySpreadValues(T min, T max)
     // If there are more than 20 values, compute 20 equally spread values
     const double step = static_cast<double>(count) / 21.0; // divide into 21 segments to get 20 intervals
     for (int i = 1; i <= 20; ++i) {
-        T value = min + static_cast<T>(std::round(i * step));
+        const T value = min + static_cast<T>(std::round(i * step));
         result.push_back(value);
     }
 
@@ -199,7 +199,8 @@ TEST(Constructing, Move)
     EXPECT_EQ(ps.get_fields_list().size(), 0);
 
     // Move assignment operator
-    protocol_serializer psMoveAssignment(std::move(psMoveConstructor));
+    protocol_serializer psMoveAssignment;
+    psMoveAssignment = std::move(psMoveConstructor);
     EXPECT_EQ(psMoveAssignment.get_is_little_endian(), true);
     EXPECT_EQ(psMoveAssignment.get_buffer_source(), protocol_serializer::buffer_source::internal);
     EXPECT_NE(psMoveAssignment.get_internal_buffer().get(), nullptr);
