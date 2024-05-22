@@ -382,23 +382,24 @@ private:
         }
 
         if (std::is_signed_v<T>) {
-            if (!get_is_host_little_endian()) {
-                if (m_prealloc_final_bytes[0] & (1 << (7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8)))
-                    return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
-            } else {
-                if (field_metadata.bit_count < 8) {
-                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8)))
-                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
+            const unsigned char shift_to_reach_most_significant_bit = 7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8;
+            const bool regular_cast_is_enough = m_prealloc_final_bytes_count == sizeof(T) && shift_to_reach_most_significant_bit == 7;
+            if (!regular_cast_is_enough) {
+                if (!get_is_host_little_endian()) {
+                    if (m_prealloc_final_bytes[0] & (1 << shift_to_reach_most_significant_bit)) {
+                        set_result(result, result_code::ok);
+                        return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
+                    }
                 } else {
-                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << (7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8))) {
-                        return (*reinterpret_cast<T*>(m_prealloc_final_bytes)) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
+                    if (m_prealloc_final_bytes[m_prealloc_final_bytes_count - 1] & (1 << shift_to_reach_most_significant_bit)) {
+                        set_result(result, result_code::ok);
+                        return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(m_prealloc_final_bytes_count * 8, field_metadata.bit_count)));
                     }
                 }
             }
         }
 
         set_result(result, result_code::ok);
-
         return *reinterpret_cast<T*>(m_prealloc_final_bytes);
     }
 

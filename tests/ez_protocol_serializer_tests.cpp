@@ -4,6 +4,85 @@
 using ez::protocol_serializer;
 using buffer_source = ez::protocol_serializer::buffer_source;
 using result_code = ez::protocol_serializer::result_code;
+
+template<class T>
+std::vector<T> generateEquallySpreadValues(T min, T max)
+{
+    // Generates vector which consists of: {min, max, <20 values between min and max>...}
+    std::vector<T> result{min, max};
+
+    // No values in between min and max
+    if (max - min <= 1)
+        return result;
+
+    const T count = max - min - 1;
+    if (count <= 20) {
+        // If there are 20 or fewer values between min and max, return them all
+        for (T i = min + 1; i < max; ++i) {
+            result.push_back(i);
+        }
+        return result;
+    }
+
+    // If there are more than 20 values, compute 20 equally spread values
+    const double step = static_cast<double>(count) / 21.0; // divide into 21 segments to get 20 intervals
+    for (int i = 1; i <= 20; ++i) {
+        T value = min + static_cast<T>(std::round(i * step));
+        result.push_back(value);
+    }
+
+    return result;
+}
+
+template<class T>
+void checkNumericLimitsOf(unsigned int offset)
+{
+    EXPECT_NE(offset, 0);
+
+    constexpr T numericLimitMin = std::numeric_limits<T>::min();
+    constexpr T numericLimitMax = std::numeric_limits<T>::max();
+
+    ez::protocol_serializer ps({{"offset", offset}, {"min", sizeof(T) * 8}, {"max", sizeof(T) * 8}});
+    ps.write("min", numericLimitMin);
+    ps.write("max", numericLimitMax);
+    EXPECT_EQ(ps.read<T>("min"), numericLimitMin);
+    EXPECT_EQ(ps.read<T>("max"), numericLimitMax);
+}
+
+void checkValuesRange(unsigned int offset, unsigned int bitCount)
+{
+    EXPECT_NE(offset, 0);
+    EXPECT_NE(bitCount, 0);
+
+    ez::protocol_serializer ps({{"offset", offset}, {"value", bitCount}});
+
+    // Check unsigned limits for this bit count
+    {
+        uint64_t min = 0;
+        uint64_t max = 0;
+        for (unsigned int i = 0; i < bitCount - 1; ++i)
+            max = (max << 1) + 1;
+
+        for (const uint64_t value : generateEquallySpreadValues<uint64_t>(min, max)) {
+            ps.write("value", value);
+            EXPECT_EQ(ps.read<uint64_t>("value"), value);
+        }
+    }
+    // Check signed limits for this bit count
+    {
+        int64_t min = 0;
+        int64_t max = 0;
+        for (unsigned int i = 0; i < bitCount - 1; ++i)
+            max = (max << 1) + 1;
+        min = -max - 1;
+
+        for (const int64_t value : generateEquallySpreadValues<int64_t>(min, max)) {
+            ps.write("value", value);
+            EXPECT_EQ(ps.read<int64_t>("value"), value);
+        }
+    }
+}
+
 TEST(Constructing, DefaultConstructor)
 {
     protocol_serializer ps;
@@ -206,4 +285,33 @@ TEST(Modifying, ProtocolLayout)
     EXPECT_EQ(psSecond.get_fields_list().size(), 0);
     EXPECT_EQ(psSecond.get_internal_buffer_length(), 0);
     EXPECT_EQ(psSecond.clear_protocol(), result_code::not_applicable);
+}
+
+TEST(ReadWrite, NumericLimits)
+{
+    // Specify offset for min and max fields for extra checks
+    // of whether weird alignment breaks it or not
+    for (unsigned int offset = 1; offset < 64; ++offset) {
+        checkNumericLimitsOf<float>(offset);
+        checkNumericLimitsOf<double>(offset);
+        checkNumericLimitsOf<int8_t>(offset);
+        checkNumericLimitsOf<int16_t>(offset);
+        checkNumericLimitsOf<int32_t>(offset);
+        checkNumericLimitsOf<int64_t>(offset);
+        checkNumericLimitsOf<uint8_t>(offset);
+        checkNumericLimitsOf<uint16_t>(offset);
+        checkNumericLimitsOf<uint32_t>(offset);
+        checkNumericLimitsOf<uint64_t>(offset);
+    }
+}
+
+TEST(ReadWrite, ValuesRange)
+{
+    // Specify offset for min and max fields for extra checks
+    // of whether weird alignment breaks it or not
+    for (unsigned int offset = 1; offset <= 64; ++offset) {
+        for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
+            checkValuesRange(offset, bitCount);
+        }
+    }
 }
