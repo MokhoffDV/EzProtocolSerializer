@@ -1,3 +1,4 @@
+#include <type_traits>
 #include <gtest/gtest.h>
 #include <ez_protocol_serializer.h>
 
@@ -8,14 +9,20 @@ using result_code = ez::protocol_serializer::result_code;
 template<class T>
 std::vector<T> generateEquallySpreadValues(T min, T max)
 {
-    // Generates vector which consists of: {min, max, <20 values between min and max>...}
+    // Generates vector which consists of: {min, max, <=20 values between min and max>...}
     std::vector<T> result{min, max};
 
     // No values in between min and max
-    if (max - min <= 1)
+    if (min == max || (min + 1 == max))
         return result;
 
-    const T count = max - min - 1;
+    std::make_unsigned<T>::type count = 0;
+    // Avoid signed type overflow in case of T::min() and T::max()
+    if (std::is_signed_v<T>) {
+        count = -min + max;
+    } else {
+        count = max - min - 1;
+    }
     if (count <= 20) {
         // If there are 20 or fewer values between min and max, return them all
         for (T i = min + 1; i < max; ++i) {
@@ -27,7 +34,7 @@ std::vector<T> generateEquallySpreadValues(T min, T max)
     // If there are more than 20 values, compute 20 equally spread values
     const double step = static_cast<double>(count) / 21.0; // divide into 21 segments to get 20 intervals
     for (int i = 1; i <= 20; ++i) {
-        const T value = min + static_cast<T>(std::round(i * step));
+        const T value = static_cast<T>(std::round(min + i * step));
         result.push_back(value);
     }
 
@@ -49,37 +56,27 @@ void checkNumericLimitsOf(unsigned int offset)
     EXPECT_EQ(ps.read<T>("max"), numericLimitMax);
 }
 
-void checkValuesRange(unsigned int offset, unsigned int bitCount)
+template<class T>
+void checkMultibyteMirroring(unsigned int offset)
 {
-    EXPECT_NE(offset, 0);
-    EXPECT_NE(bitCount, 0);
+    for (const T hostValue : generateEquallySpreadValues(std::numeric_limits<T>::min(), std::numeric_limits<T>::max())) {
+        protocol_serializer ps({{"offset", offset}, {"value", sizeof(T) * 8}});
 
-    ez::protocol_serializer ps({{"offset", offset}, {"value", bitCount}});
+        // Match protocol endiannes with host endiannes and write host value
+        ps.set_is_little_endian(protocol_serializer::get_is_host_little_endian());
+        ps.write("value", hostValue);
 
-    // Check unsigned limits for this bit count
-    {
-        uint64_t min = 0;
-        uint64_t max = 0;
-        for (unsigned int i = 0; i < bitCount - 1; ++i)
-            max = (max << 1) + 1;
+        // Make interpreting endiannes to differ from host
+        ps.set_is_little_endian(!protocol_serializer::get_is_host_little_endian());
+        const T reversedValue = ps.read<T>("value");
 
-        for (const uint64_t value : generateEquallySpreadValues<uint64_t>(min, max)) {
-            ps.write("value", value);
-            EXPECT_EQ(ps.read<uint64_t>("value"), value);
-        }
-    }
-    // Check signed limits for this bit count
-    {
-        int64_t min = 0;
-        int64_t max = 0;
-        for (unsigned int i = 0; i < bitCount - 1; ++i)
-            max = (max << 1) + 1;
-        min = -max - 1;
-
-        for (const int64_t value : generateEquallySpreadValues<int64_t>(min, max)) {
-            ps.write("value", value);
-            EXPECT_EQ(ps.read<int64_t>("value"), value);
-        }
+        // Make sure those values are a mirror version of each other
+        unsigned char hostValueBytes[sizeof(T)];
+        memcpy(hostValueBytes, &hostValue, sizeof(T));
+        unsigned char reversedValueBytes[sizeof(T)];
+        memcpy(reversedValueBytes, &reversedValue, sizeof(T));
+        for (size_t i = 0; i < sizeof(T); ++i)
+            EXPECT_EQ(hostValueBytes[i], reversedValueBytes[sizeof(T) - i - 1]);
     }
 }
 
@@ -218,8 +215,6 @@ TEST(Constructing, Move)
 
 TEST(Modifying, Endiannes)
 {
-    protocol_serializer ps;
-
     // Check if host endiannes is determined correctly
     unsigned char shortBytes[2];
     const uint16_t shortValue = 1;
@@ -227,6 +222,7 @@ TEST(Modifying, Endiannes)
     EXPECT_EQ(static_cast<bool>(shortBytes[0]), protocol_serializer::get_is_host_little_endian());
 
     // Check if protocol endiannes is being correctly changed
+    protocol_serializer ps;
     ps.set_is_little_endian(true);
     EXPECT_EQ(ps.get_is_little_endian(), true);
     ps.set_is_little_endian(false);
@@ -234,12 +230,15 @@ TEST(Modifying, Endiannes)
     ps.set_is_little_endian(true);
     EXPECT_EQ(ps.get_is_little_endian(), true);
 
-    // Check if values are interpreted correctly depending on endiannes
-    ps.set_is_little_endian(true);
-    ps.append_field({"field", 16});
-    ps.write("field", shortValue);
-    ps.set_is_little_endian(false);
-    EXPECT_EQ(ps.read<uint16_t>("field"), 256);
+    // Check if multi-byte values are interpreted correctly depending on endiannes
+    for (unsigned int offset = 1; offset <= 64; ++offset) {
+        checkMultibyteMirroring<int16_t>(offset);
+        checkMultibyteMirroring<int32_t>(offset);
+        checkMultibyteMirroring<int64_t>(offset);
+        checkMultibyteMirroring<uint16_t>(offset);
+        checkMultibyteMirroring<uint32_t>(offset);
+        checkMultibyteMirroring<uint64_t>(offset);
+    }
 }
 
 TEST(Modifying, ProtocolLayout)
@@ -302,7 +301,7 @@ TEST(Modifying, ProtocolLayout)
     EXPECT_EQ(psSecond.clear_protocol(), result_code::not_applicable);
 }
 
-TEST(ReadWrite, NumericLimits)
+TEST(ReadWrite, NumericLimitsInRespectiveFieldLength)
 {
     // Specify offset for min and max fields for extra checks
     // of whether weird alignment breaks it or not
@@ -320,13 +319,41 @@ TEST(ReadWrite, NumericLimits)
     }
 }
 
-TEST(ReadWrite, ValuesRange)
+TEST(ReadWrite, ValuesRangeInVariableFieldLength)
 {
     // Specify offset for min and max fields for extra checks
     // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset <= 64; ++offset) {
         for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
-            checkValuesRange(offset, bitCount);
+            EXPECT_NE(offset, 0);
+            EXPECT_NE(bitCount, 0);
+
+            ez::protocol_serializer ps({{"offset", offset}, {"value", bitCount}});
+
+            // Check unsigned limits for this bit count
+            {
+                uint64_t max = 0;
+                for (unsigned int i = 0; i < bitCount - 1; ++i)
+                    max = (max << 1) + 1;
+
+                for (const uint64_t value : generateEquallySpreadValues<uint64_t>(0, max)) {
+                    ps.write("value", value);
+                    EXPECT_EQ(ps.read<uint64_t>("value"), value);
+                }
+            }
+            // Check signed limits for this bit count
+            {
+                int64_t min = 0;
+                int64_t max = 0;
+                for (unsigned int i = 0; i < bitCount - 1; ++i)
+                    max = (max << 1) + 1;
+                min = -max - 1;
+
+                for (const int64_t value : generateEquallySpreadValues<int64_t>(min, max)) {
+                    ps.write("value", value);
+                    EXPECT_EQ(ps.read<int64_t>("value"), value);
+                }
+            }
         }
     }
 }
