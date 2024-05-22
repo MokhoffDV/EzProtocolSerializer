@@ -9,15 +9,15 @@ VisualizerWidget::VisualizerWidget(QWidget* parent)
 
     m_ui->getVisualizationOutputEdit->setWordWrapMode(QTextOption::WrapMode::NoWrap);
     connect(m_ui->drawHeaderCheckbox, &QCheckBox::stateChanged, this, [this]() { visualize(); });
-    connect(m_ui->firstLineNumSpinbox, &QSpinBox::valueChanged, this, [this]() { visualize(); });
-    connect(m_ui->horizontalBitMarginSpinbox, &QSpinBox::valueChanged, this, [this]() { visualize(); });
-    connect(m_ui->namesLinesCountSpinbo, &QSpinBox::valueChanged, this, [this]() { visualize(); });
+    connect(m_ui->firstLineNumSpinbox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() { visualize(); });
+    connect(m_ui->horizontalBitMarginSpinbox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() { visualize(); });
+    connect(m_ui->namesLinesCountSpinbo, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() { visualize(); });
     connect(m_ui->printValuesCheckbox, &QCheckBox::stateChanged, this, [this]() { visualize(); });
 
     m_ui->getDataVisualizationOutputEdit->setWordWrapMode(QTextOption::WrapMode::NoWrap);
-    connect(m_ui->firstLineNum2Spinbox, &QSpinBox::valueChanged, this, [this]() { visualize(); });
-    connect(m_ui->bytesPerLineSpinbox, &QSpinBox::valueChanged, this, [this]() { visualize(); });
-    connect(m_ui->baseCombobox, &QComboBox::currentIndexChanged, this, [this]() { visualize(); });
+    connect(m_ui->firstLineNum2Spinbox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() { visualize(); });
+    connect(m_ui->bytesPerLineSpinbox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() { visualize(); });
+    connect(m_ui->baseCombobox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() { visualize(); });
     connect(m_ui->spacesBetweenBytesCheckbox, &QCheckBox::stateChanged, this, [this]() { visualize(); });
 }
 

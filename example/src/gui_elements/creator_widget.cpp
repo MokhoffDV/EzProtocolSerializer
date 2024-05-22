@@ -108,7 +108,7 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
         m_visTypeCombo->blockSignals(false);
     };
 
-    connect(m_visTypeCombo, &QComboBox::currentIndexChanged, this, [this, dropVisType](int index)
+    connect(m_visTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, dropVisType](int index)
     {
         using vis_type = ez::protocol_serializer::visualization_type;
         if (static_cast<vis_type>(index) == vis_type::floating_point && m_bitCountSpinbox->value() != 32 && m_bitCountSpinbox->value() != 64) {
@@ -119,7 +119,7 @@ CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr *
         m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
     });
 
-    connect(m_bitCountSpinbox, &QSpinBox::valueChanged, this, [this, dropVisType](int value)
+    connect(m_bitCountSpinbox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this, dropVisType](int value)
     {
         using vis_type = ez::protocol_serializer::visualization_type;
         if (static_cast<vis_type>(m_visTypeCombo->currentIndex()) == vis_type::floating_point && value != 32 && value != 64)
