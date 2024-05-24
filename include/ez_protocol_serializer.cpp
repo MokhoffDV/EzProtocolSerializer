@@ -329,13 +329,13 @@ std::string protocol_serializer::get_data_visualization(const data_visualization
         char byte_text_value[32];
         memset(byte_text_value, 0, sizeof(byte_text_value));
         if (dvp.base_system == data_visualization_params::base::hex)
-            sprintf_s(byte_text_value, "%x", m_working_buffer[i]);
+            sprintf(byte_text_value, "%x", m_working_buffer[i]);
         else if (dvp.base_system == data_visualization_params::base::dec)
-            sprintf_s(byte_text_value, "%d", m_working_buffer[i]);
+            sprintf(byte_text_value, "%d", m_working_buffer[i]);
         else if (dvp.base_system == data_visualization_params::base::oct)
-            sprintf_s(byte_text_value, "%o", m_working_buffer[i]);
+            sprintf(byte_text_value, "%o", m_working_buffer[i]);
         else if (dvp.base_system == data_visualization_params::base::bin)
-            sprintf_s(byte_text_value, "%s%s", get_half_byte_binary()[m_working_buffer[i] >> 4].c_str(), get_half_byte_binary()[m_working_buffer[i] & 0x0F].c_str());
+            sprintf(byte_text_value, "%s%s", get_half_byte_binary()[m_working_buffer[i] >> 4].c_str(), get_half_byte_binary()[m_working_buffer[i] & 0x0F].c_str());
 
         std::string byte_text_valueStr(byte_text_value);
         // Add leading zeros to add up to length of 2 for HEX and length of 3 for DEC and OCT
