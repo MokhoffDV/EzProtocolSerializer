@@ -390,7 +390,7 @@ private:
             }
         }
 
-        if (std::is_signed_v<T>) {
+        if (std::is_signed<T>::value) {
             const unsigned char shift_to_reach_most_significant_bit = 7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8;
             const bool regular_cast_is_enough = m_prealloc_final_bytes_count == sizeof(T) && shift_to_reach_most_significant_bit == 7;
             if (!regular_cast_is_enough) {

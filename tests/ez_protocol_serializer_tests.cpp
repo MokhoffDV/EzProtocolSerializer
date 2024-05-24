@@ -1,3 +1,4 @@
+#include <cmath>
 #include <type_traits>
 #include <gtest/gtest.h>
 #include <ez_protocol_serializer.h>
