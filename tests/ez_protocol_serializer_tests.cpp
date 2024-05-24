@@ -229,16 +229,6 @@ TEST(Modifying, Endiannes)
     EXPECT_EQ(ps.get_is_little_endian(), false);
     ps.set_is_little_endian(true);
     EXPECT_EQ(ps.get_is_little_endian(), true);
-
-    // Check if multi-byte values are interpreted correctly depending on endiannes
-    for (unsigned int offset = 1; offset <= 64; ++offset) {
-        checkMultibyteMirroring<int16_t>(offset);
-        checkMultibyteMirroring<int32_t>(offset);
-        checkMultibyteMirroring<int64_t>(offset);
-        checkMultibyteMirroring<uint16_t>(offset);
-        checkMultibyteMirroring<uint32_t>(offset);
-        checkMultibyteMirroring<uint64_t>(offset);
-    }
 }
 
 TEST(Modifying, ProtocolLayout)
@@ -301,6 +291,19 @@ TEST(Modifying, ProtocolLayout)
     EXPECT_EQ(psSecond.clear_protocol(), result_code::not_applicable);
 }
 
+TEST(ReadWrite, Endiannes)
+{
+    // Check if multi-byte values are interpreted correctly depending on endiannes
+    for (unsigned int offset = 1; offset <= 64; ++offset) {
+        checkMultibyteMirroring<int16_t>(offset);
+        checkMultibyteMirroring<int32_t>(offset);
+        checkMultibyteMirroring<int64_t>(offset);
+        checkMultibyteMirroring<uint16_t>(offset);
+        checkMultibyteMirroring<uint32_t>(offset);
+        checkMultibyteMirroring<uint64_t>(offset);
+    }
+}
+
 TEST(ReadWrite, NumericLimitsInRespectiveFieldLength)
 {
     // Specify offset for min and max fields for extra checks
@@ -352,6 +355,69 @@ TEST(ReadWrite, ValuesRangeInVariableFieldLength)
                 for (const int64_t value : generateEquallySpreadValues<int64_t>(min, max)) {
                     ps.write("value", value);
                     EXPECT_EQ(ps.read<int64_t>("value"), value);
+                }
+            }
+        }
+    }
+}
+
+TEST(ReadWrite, Arrays)
+{
+    // Specify offset for min and max fields for extra checks
+    // of whether weird alignment breaks it or not
+    for (unsigned int offset = 1; offset <= 64; ++offset) {
+        for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
+            EXPECT_NE(offset, 0);
+            EXPECT_NE(bitCount, 0);
+
+            // Check unsigned limits for this bit count
+            {
+                uint64_t max = 0;
+                for (unsigned int i = 0; i < bitCount - 1; ++i)
+                    max = (max << 1) + 1;
+
+                const std::vector<uint64_t> values = generateEquallySpreadValues<uint64_t>(0, max);
+                // Create a protocol with array which gives bitCount for each value
+                ez::protocol_serializer ps({{"offset", offset}, {"array", bitCount * static_cast<unsigned int>(values.size())}});
+
+                // Write array
+                std::unique_ptr<uint64_t[]> writtenArray = std::make_unique<uint64_t[]>(values.size());
+                for (int i = 0; i < values.size(); ++i)
+                    writtenArray[i] = values.at(i);
+                ps.write_array<uint64_t>("array", writtenArray.get(), values.size());
+
+                // Read array
+                std::unique_ptr<uint64_t[]> readArray = std::make_unique<uint64_t[]>(values.size());
+                ps.read_array<uint64_t>("array", readArray.get(), values.size());
+                for (int i = 0; i < values.size(); ++i) {
+                    EXPECT_EQ(values[i], writtenArray[i]);
+                    EXPECT_EQ(writtenArray[i], readArray[i]);
+                }
+            }
+            // Check signed limits for this bit count
+            {
+                int64_t min = 0;
+                int64_t max = 0;
+                for (unsigned int i = 0; i < bitCount - 1; ++i)
+                    max = (max << 1) + 1;
+                min = -max - 1;
+
+                const std::vector<int64_t> values = generateEquallySpreadValues<int64_t>(min, max);
+                // Create a protocol with array which gives bitCount for each value
+                ez::protocol_serializer ps({{"offset", offset}, {"array", bitCount * static_cast<unsigned int>(values.size())}});
+
+                // Write array
+                std::unique_ptr<int64_t[]> writtenArray = std::make_unique<int64_t[]>(values.size());
+                for (int i = 0; i < values.size(); ++i)
+                    writtenArray[i] = values.at(i);
+                ps.write_array<int64_t>("array", writtenArray.get(), values.size());
+
+                // Read array
+                std::unique_ptr<int64_t[]> readArray = std::make_unique<int64_t[]>(values.size());
+                ps.read_array<int64_t>("array", readArray.get(), values.size());
+                for (int i = 0; i < values.size(); ++i) {
+                    EXPECT_EQ(values[i], writtenArray[i]);
+                    EXPECT_EQ(writtenArray[i], readArray[i]);
                 }
             }
         }
