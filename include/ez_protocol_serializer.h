@@ -160,19 +160,22 @@ public:
         return _write(field_metadata(field_first_bit, field_bit_count), value);
     }
 
-    template<class T, size_t N, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
-    result_code write_array(const std::string& name, const T array[N])
+    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    result_code write_array(const std::string& name, const T* array, const size_t size)
     {
+        if (size == 0)
+            return result_code::bad_input;
+
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend())
             return result_code::field_not_found;
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bit_count % N)
+        if (field_init.bit_count % size)
             return result_code::not_applicable;
 
-        const unsigned char ghost_field_length = field_init.bit_count / N;
-        for (unsigned int i = 0; i < N; ++i) {
+        const unsigned char ghost_field_length = field_init.bit_count / size;
+        for (unsigned int i = 0; i < size; ++i) {
             const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghost_field_length;
             const result_code result = write_ghost(first_bit_ind, ghost_field_length, array[i]);
             if (result != result_code::ok)
@@ -182,14 +185,14 @@ public:
         return result_code::ok;
     }
 
-    template<class T, size_t N, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
-    result_code write_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, const T array[N])
+    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    result_code write_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, const T* array, const size_t size)
     {
-        if (field_bit_count % N)
+        if (field_bit_count % size)
             return result_code::not_applicable;
 
-        const unsigned char ghost_field_length = field_bit_count / N;
-        for (unsigned int i = 0; i < N; ++i) {
+        const unsigned char ghost_field_length = field_bit_count / size;
+        for (unsigned int i = 0; i < size; ++i) {
             const unsigned int first_bit_ind = field_first_bit + i * ghost_field_length;
             const result_code result = set_ghost(first_bit_ind, ghost_field_length, array[i]);
             if (result != result_code::ok)
@@ -216,8 +219,8 @@ public:
         return _read<T>(field_metadata(field_first_bit, field_bit_count), result);
     }
 
-    template<class T, size_t N, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
-    void read_array(const std::string& name, T array[N], result_code* result = nullptr) const
+    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    void read_array(const std::string& name, T* array, const size_t size, result_code* result = nullptr) const
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
@@ -226,13 +229,13 @@ public:
         }
 
         const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bit_count % N) {
+        if (field_init.bit_count % size) {
             set_result(result, result_code::not_applicable);
             return;
         }
 
-        const unsigned char ghost_field_length = field_init.bit_count / N;
-        for (unsigned int i = 0; i < N; ++i) {
+        const unsigned char ghost_field_length = field_init.bit_count / size;
+        for (unsigned int i = 0; i < size; ++i) {
             const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghost_field_length;
             result_code local_result = result_code::ok;
             array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
@@ -245,16 +248,16 @@ public:
         set_result(result, result_code::ok);
     }
 
-    template<class T, size_t N, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
-    void read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, T array[N], result_code* result = nullptr)
+    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    void read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, T* array, const size_t size, result_code* result = nullptr)
     {
-        if (field_bit_count % N) {
+        if (field_bit_count % size) {
             set_result(result, result_code::not_applicable);
             return;
         }
 
-        const unsigned char ghost_field_length = field_bit_count / N;
-        for (unsigned int i = 0; i < N; ++i) {
+        const unsigned char ghost_field_length = field_bit_count / size;
+        for (unsigned int i = 0; i < size; ++i) {
             const unsigned int first_bit_ind = field_first_bit + i * ghost_field_length;
             result_code local_result = result_code::ok;
             array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
