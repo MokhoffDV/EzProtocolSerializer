@@ -16,9 +16,9 @@ std::vector<T> generateEquallySpreadValues(T min, T max)
     if (min == max || (min + 1 == max))
         return result;
 
-    std::make_unsigned<T>::type count = 0;
+    typename std::make_unsigned<T>::type count = 0;
     // Avoid signed type overflow in case of T::min() and T::max()
-    if (std::is_signed_v<T>) {
+    if (std::is_signed<T>::value) {
         count = -min + max;
     } else {
         count = max - min - 1;
