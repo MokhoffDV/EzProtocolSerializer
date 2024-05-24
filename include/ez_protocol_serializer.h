@@ -145,7 +145,7 @@ public:
     std::string get_data_visualization(const data_visualization_params& dvp) const;
     
     // Reading/writing
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     result_code write(const std::string& name, const T& value)
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
@@ -155,13 +155,13 @@ public:
         return _write(m_prealloc_metadata_itt->second, value);
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     result_code write_ghost(const unsigned int field_first_bit, const unsigned int field_bit_count, const T& value)
     {
         return _write(field_metadata(field_first_bit, field_bit_count), value);
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     result_code write_array(const std::string& name, const T* array, const size_t size)
     {
         if (size == 0)
@@ -186,7 +186,7 @@ public:
         return result_code::ok;
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     result_code write_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, const T* array, const size_t size)
     {
         if (field_bit_count % size)
@@ -203,7 +203,7 @@ public:
         return result_code::ok;
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     T read(const std::string& name, result_code* result = nullptr) const
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
@@ -214,13 +214,13 @@ public:
         return _read<T>(m_prealloc_metadata_itt->second, result);
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     T read_ghost(const unsigned int field_first_bit, const unsigned int field_bit_count, result_code* result = nullptr) const
     {
         return _read<T>(field_metadata(field_first_bit, field_bit_count), result);
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     void read_array(const std::string& name, T* array, const size_t size, result_code* result = nullptr) const
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
@@ -249,7 +249,7 @@ public:
         set_result(result, result_code::ok);
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     void read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, T* array, const size_t size, result_code* result = nullptr)
     {
         if (field_bit_count % size) {
@@ -272,7 +272,7 @@ public:
     }
 
 private:
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     result_code _write(const field_metadata& field_metadata, const T& value)
     {
         if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8)
@@ -332,7 +332,7 @@ private:
         return result_code::ok;
     }
 
-    template<class T, typename = std::enable_if<std::is_arithmetic<T>::value>::type>
+    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     T _read(const field_metadata& field_metadata, result_code* result = nullptr) const
     {
         if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8) {
