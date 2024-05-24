@@ -1,4 +1,5 @@
 #include <ez_protocol_serializer.h>
+#include <cstdio>
 
 using ez::protocol_serializer;
 
