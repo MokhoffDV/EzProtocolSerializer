@@ -125,8 +125,13 @@ public:
     bool get_is_little_endian() const;
     static constexpr bool get_is_host_little_endian()
     {
-        constexpr uint16_t value = 0x1234;
-        return static_cast<uint8_t>(value) == 0x34;
+        union
+        {
+            uint16_t value;
+            uint8_t bytes[2];
+        } test = {0x1234};
+
+        return test.bytes[0] == 0x34;
     }
 
     // Buffers
