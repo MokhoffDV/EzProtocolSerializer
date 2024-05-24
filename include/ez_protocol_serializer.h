@@ -2,6 +2,7 @@
 #define EZ_PROTOCOL_SERIALIZER
 
 #include <map>
+#include <list>
 #include <memory>
 #include <vector>
 #include <string>
