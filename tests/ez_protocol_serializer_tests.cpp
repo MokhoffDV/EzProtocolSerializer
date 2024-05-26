@@ -336,8 +336,6 @@ TEST(ReadWrite, Endiannes)
 // Check if protocol can write and read numeric limits of different types
 TEST(ReadWrite, NumericLimitsInRespectiveFieldLength)
 {
-    // Specify offset for min and max fields for extra checks
-    // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset < 64; ++offset) {
         checkNumericLimitsOf<float>(offset);
         checkNumericLimitsOf<double>(offset);
@@ -355,8 +353,6 @@ TEST(ReadWrite, NumericLimitsInRespectiveFieldLength)
 // Check if protocol can write and read ranges of values using fields of varying length
 TEST(ReadWrite, ValuesRangeInVariableFieldLength)
 {
-    // Specify offset for min and max fields for extra checks
-    // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset <= 64; ++offset) {
         for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
             assert(offset != 0);
@@ -395,8 +391,6 @@ TEST(ReadWrite, ValuesRangeInVariableFieldLength)
 // Checks if reading/writing arrays works as expected
 TEST(ReadWrite, Arrays)
 {
-    // Specify offset for min and max fields for extra checks
-    // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset <= 64; ++offset) {
         for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
             assert(offset != 0);
@@ -456,11 +450,9 @@ TEST(ReadWrite, Arrays)
     }
 }
 
-//Checks if in case of reading a value into smaller type results in most significant bytes being cut
+// Checks if in case of reading a value into smaller type results in most significant bytes being cut
 TEST(ReadWrite, TypeOverflow)
 {
-    // Specify offset for min and max fields for extra checks
-    // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset <= 64; ++offset) {
         checkTypeOverflowOf<uint8_t, uint16_t>(offset);
         checkTypeOverflowOf<uint8_t, uint32_t>(offset);
