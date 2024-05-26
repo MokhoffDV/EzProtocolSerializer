@@ -61,23 +61,26 @@ template<class T>
 void checkMultibyteMirroring(unsigned int offset)
 {
     for (const T hostValue : generateEquallySpreadValues(std::numeric_limits<T>::min(), std::numeric_limits<T>::max())) {
-        protocol_serializer ps({{"offset", offset}, {"value", sizeof(T) * 8}});
+        for (unsigned char writeToHostMatched = 0; writeToHostMatched <= 1; ++writeToHostMatched) {
+            const bool isLittleEndian = protocol_serializer::get_is_host_little_endian() && writeToHostMatched;
+            protocol_serializer ps({{"offset", offset}, {"value", sizeof(T) * 8}});
 
-        // Match protocol endiannes with host endiannes and write host value
-        ps.set_is_little_endian(protocol_serializer::get_is_host_little_endian());
-        ps.write("value", hostValue);
+            // Match (or not) protocol endiannes with host endiannes and write host value
+            ps.set_is_little_endian(isLittleEndian);
+            ps.write("value", hostValue);
 
-        // Make interpreting endiannes to differ from host
-        ps.set_is_little_endian(!protocol_serializer::get_is_host_little_endian());
-        const T reversedValue = ps.read<T>("value");
+            // Invert endiannes which will be used for reading
+            ps.set_is_little_endian(!isLittleEndian);
+            const T reversedValue = ps.read<T>("value");
 
-        // Make sure those values are a mirror version of each other
-        unsigned char hostValueBytes[sizeof(T)];
-        memcpy(hostValueBytes, &hostValue, sizeof(T));
-        unsigned char reversedValueBytes[sizeof(T)];
-        memcpy(reversedValueBytes, &reversedValue, sizeof(T));
-        for (size_t i = 0; i < sizeof(T); ++i)
-            EXPECT_EQ(hostValueBytes[i], reversedValueBytes[sizeof(T) - i - 1]);
+            // Make sure those values are a mirror version of each other
+            unsigned char hostValueBytes[sizeof(T)];
+            memcpy(hostValueBytes, &hostValue, sizeof(T));
+            unsigned char reversedValueBytes[sizeof(T)];
+            memcpy(reversedValueBytes, &reversedValue, sizeof(T));
+            for (size_t i = 0; i < sizeof(T); ++i)
+                EXPECT_EQ(hostValueBytes[i], reversedValueBytes[sizeof(T) - i - 1]);
+        }
     }
 }
 

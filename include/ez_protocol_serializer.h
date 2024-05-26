@@ -399,7 +399,7 @@ private:
             m_prealloc_final_bytes = m_prealloc_raw_bytes + 64 - sizeof(T);
 
         // If we read a signed value, then reinterpret cast will only work if most significant bit (which determines sign)
-        // of the value exactly matches expected position for of type T (we could read a 3-bit signed value, then cast will not work)
+        // of the value exactly matches expected position for type T (we could read a 3-bit signed value, then cast will not work)
         if (std::is_signed<T>::value) {
             const unsigned char shift_to_reach_most_significant_bit = 7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8;
             const bool regular_cast_is_enough = field_metadata.bytes_count == sizeof(T) && shift_to_reach_most_significant_bit == 7;
