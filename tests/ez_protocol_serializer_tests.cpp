@@ -8,9 +8,9 @@ using buffer_source = ez::protocol_serializer::buffer_source;
 using result_code = ez::protocol_serializer::result_code;
 
 template<class T>
-std::vector<T> generateEquallySpreadValues(T min, T max)
+std::vector<T> generateEquallySpreadValues(T min, T max, const unsigned int N = 100)
 {
-    // Generates vector which consists of: {min, max, <=20 values between min and max>...}
+    // Generates vector which consists of: {min, max, <=N values between min and max>...}
     std::vector<T> result{min, max};
 
     // No values in between min and max
@@ -24,17 +24,17 @@ std::vector<T> generateEquallySpreadValues(T min, T max)
     } else {
         count = max - min - 1;
     }
-    if (count <= 20) {
-        // If there are 20 or fewer values between min and max, return them all
+    if (count <= N) {
+        // If there are N or fewer values between min and max, return them all
         for (T i = min + 1; i < max; ++i) {
             result.push_back(i);
         }
         return result;
     }
 
-    // If there are more than 20 values, compute 20 equally spread values
-    const double step = static_cast<double>(count) / 21.0; // divide into 21 segments to get 20 intervals
-    for (int i = 1; i <= 20; ++i) {
+    // If there are more than N values, compute N equally spread values
+    const double step = static_cast<double>(count) / static_cast<double>(N + 1); // divide into N+1 segments to get 100 intervals
+    for (int i = 1; i <= N; ++i) {
         const T value = static_cast<T>(std::round(min + i * step));
         result.push_back(value);
     }
