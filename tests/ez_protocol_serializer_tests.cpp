@@ -96,6 +96,7 @@ void checkTypeOverflowOf(unsigned int offset)
     }
 }
 
+// Checks default constructor properties
 TEST(Constructing, DefaultConstructor)
 {
     protocol_serializer ps;
@@ -106,6 +107,7 @@ TEST(Constructing, DefaultConstructor)
     EXPECT_EQ(ps.get_fields_list().size(), 0);
 }
 
+// Checks first constructor properties
 TEST(Constructing, Constructor1)
 {
     unsigned char externalBuffer[32];
@@ -123,6 +125,7 @@ TEST(Constructing, Constructor1)
     EXPECT_EQ(ps.get_internal_buffer_length(), 3);
     EXPECT_EQ(ps.get_fields_list().size(), 3);
 
+    // Modify buffer externally and see how it affects read results
     const int intialField2Value = ps.read<int>("field_2");
     memset(externalBuffer, 2, 32);
     const int newField2Value = ps.read<int>("field_2");
@@ -132,6 +135,7 @@ TEST(Constructing, Constructor1)
     EXPECT_EQ(newField2Value, newerField2Value);
 }
 
+// Checks second constructor properties
 TEST(Constructing, Constructor2)
 {
     protocol_serializer ps({
@@ -147,6 +151,7 @@ TEST(Constructing, Constructor2)
     EXPECT_EQ(ps.get_fields_list().size(), 3);
 }
 
+// Check if copying works
 TEST(Constructing, Copy)
 {
     protocol_serializer ps({
@@ -181,6 +186,7 @@ TEST(Constructing, Copy)
     EXPECT_EQ(psCopyAssignment.get_fields_list().size(), psCopyConstructor.get_fields_list().size());
 }
 
+// Check if moving works
 TEST(Constructing, Move)
 {
     protocol_serializer ps({
@@ -229,14 +235,18 @@ TEST(Constructing, Move)
     EXPECT_EQ(psMoveConstructor.get_fields_list().size(), 0);
 }
 
-TEST(Modifying, Endiannes)
+// Checks if host endiannes is correctly recognized
+TEST(Constructing, Endiannes)
 {
-    // Check if host endiannes is determined correctly
     unsigned char shortBytes[2];
     const uint16_t shortValue = 1;
     memcpy(shortBytes, &shortValue, 2);
     EXPECT_EQ(static_cast<bool>(shortBytes[0]), protocol_serializer::get_is_host_little_endian());
+}
 
+// Checks if endiannes is correctly set
+TEST(Modifying, Endiannes)
+{
     // Check if protocol endiannes is being correctly changed
     protocol_serializer ps;
     ps.set_is_little_endian(true);
@@ -247,6 +257,7 @@ TEST(Modifying, Endiannes)
     EXPECT_EQ(ps.get_is_little_endian(), true);
 }
 
+// Checks if modifying protocol layout works as expected
 TEST(Modifying, ProtocolLayout)
 {
     protocol_serializer ps;
@@ -307,6 +318,7 @@ TEST(Modifying, ProtocolLayout)
     EXPECT_EQ(psSecond.clear_protocol(), result_code::not_applicable);
 }
 
+// Checks if internal protocol endiannes results in mirrored values written
 TEST(ReadWrite, Endiannes)
 {
     // Check if multi-byte values are interpreted correctly depending on endiannes
@@ -320,6 +332,7 @@ TEST(ReadWrite, Endiannes)
     }
 }
 
+// Check if protocol can write and read numeric limits of different types
 TEST(ReadWrite, NumericLimitsInRespectiveFieldLength)
 {
     // Specify offset for min and max fields for extra checks
@@ -338,6 +351,7 @@ TEST(ReadWrite, NumericLimitsInRespectiveFieldLength)
     }
 }
 
+// Check if protocol can write and read ranges of values using fields of varying length
 TEST(ReadWrite, ValuesRangeInVariableFieldLength)
 {
     // Specify offset for min and max fields for extra checks
@@ -377,6 +391,7 @@ TEST(ReadWrite, ValuesRangeInVariableFieldLength)
     }
 }
 
+// Checks if reading/writing arrays works as expected
 TEST(ReadWrite, Arrays)
 {
     // Specify offset for min and max fields for extra checks
@@ -440,7 +455,7 @@ TEST(ReadWrite, Arrays)
     }
 }
 
-
+//Checks if in case of reading a value into smaller type results in most significant bytes being cut
 TEST(ReadWrite, TypeOverflow)
 {
     // Specify offset for min and max fields for extra checks
