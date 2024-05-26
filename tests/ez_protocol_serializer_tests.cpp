@@ -85,12 +85,10 @@ template<class SmallType, class BigType>
 void checkTypeOverflowOf(unsigned int offset)
 {
     assert(offset != 0);
-    assert(!std::is_signed<SmallType>::value);
-    assert(!std::is_signed<BigType>::value);
 
     const std::vector<BigType> bigValues = generateEquallySpreadValues(std::numeric_limits<BigType>::min(), std::numeric_limits<BigType>::max());
-    for (const uint64_t bigValue : bigValues) {
-        ez::protocol_serializer ps({{"offset", offset}, {"big_value", sizeof(uint64_t) * 8}});
+    for (const BigType bigValue : bigValues) {
+        ez::protocol_serializer ps({{"offset", offset}, {"big_value", sizeof(BigType) * 8}});
         ps.write("big_value", bigValue);
         EXPECT_EQ(ps.read<SmallType>("big_value"), static_cast<SmallType>(bigValue));
     }
@@ -460,12 +458,19 @@ TEST(ReadWrite, TypeOverflow)
 {
     // Specify offset for min and max fields for extra checks
     // of whether weird alignment breaks it or not
-    for (unsigned int offset = 1; offset < 64; ++offset) {
+    for (unsigned int offset = 1; offset <= 64; ++offset) {
         checkTypeOverflowOf<uint8_t, uint16_t>(offset);
         checkTypeOverflowOf<uint8_t, uint32_t>(offset);
         checkTypeOverflowOf<uint8_t, uint64_t>(offset);
         checkTypeOverflowOf<uint16_t, uint32_t>(offset);
         checkTypeOverflowOf<uint16_t, uint64_t>(offset);
         checkTypeOverflowOf<uint32_t, uint64_t>(offset);
+
+        checkTypeOverflowOf<int8_t, int16_t>(offset);
+        checkTypeOverflowOf<int8_t, int32_t>(offset);
+        checkTypeOverflowOf<int8_t, int64_t>(offset);
+        checkTypeOverflowOf<int16_t, int32_t>(offset);
+        checkTypeOverflowOf<int16_t, int64_t>(offset);
+        checkTypeOverflowOf<int32_t, int64_t>(offset);
     }
 }

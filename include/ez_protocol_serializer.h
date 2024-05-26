@@ -405,14 +405,14 @@ private:
             const bool regular_cast_is_enough = field_metadata.bytes_count == sizeof(T) && shift_to_reach_most_significant_bit == 7;
             if (!regular_cast_is_enough) {
                 if (!get_is_host_little_endian())
-                    m_prealloc_msb = m_prealloc_raw_bytes[64 - field_metadata.bytes_count];
+                    m_prealloc_msb = m_prealloc_raw_bytes[64 - std::min(field_metadata.bytes_count, static_cast<unsigned int>(sizeof(T)))];
                 else
-                    m_prealloc_msb = m_prealloc_final_bytes[field_metadata.bytes_count - 1];
+                    m_prealloc_msb = m_prealloc_final_bytes[std::min(field_metadata.bytes_count, static_cast<unsigned int>(sizeof(T))) - 1];
 
                 // If most significant bit is 1 then we need a little trick to return negative value
                 if (m_prealloc_msb & (1 << shift_to_reach_most_significant_bit)) {
                     set_result(result, result_code::ok);
-                    return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(field_metadata.bytes_count * 8, field_metadata.bit_count)));
+                    return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(field_metadata.bit_count, static_cast<unsigned int>(sizeof(T)) * 8)));
                 }
             }
         }
