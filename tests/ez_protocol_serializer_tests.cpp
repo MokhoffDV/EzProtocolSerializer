@@ -45,7 +45,7 @@ std::vector<T> generateEquallySpreadValues(T min, T max)
 template<class T>
 void checkNumericLimitsOf(unsigned int offset)
 {
-    EXPECT_NE(offset, 0);
+    assert(offset != 0);
 
     constexpr T numericLimitMin = std::numeric_limits<T>::min();
     constexpr T numericLimitMax = std::numeric_limits<T>::max();
@@ -78,6 +78,21 @@ void checkMultibyteMirroring(unsigned int offset)
         memcpy(reversedValueBytes, &reversedValue, sizeof(T));
         for (size_t i = 0; i < sizeof(T); ++i)
             EXPECT_EQ(hostValueBytes[i], reversedValueBytes[sizeof(T) - i - 1]);
+    }
+}
+
+template<class SmallType, class BigType>
+void checkTypeOverflowOf(unsigned int offset)
+{
+    assert(offset != 0);
+    assert(!std::is_signed<SmallType>::value);
+    assert(!std::is_signed<BigType>::value);
+
+    const std::vector<BigType> bigValues = generateEquallySpreadValues(std::numeric_limits<BigType>::min(), std::numeric_limits<BigType>::max());
+    for (const uint64_t bigValue : bigValues) {
+        ez::protocol_serializer ps({{"offset", offset}, {"big_value", sizeof(uint64_t) * 8}});
+        ps.write("big_value", bigValue);
+        EXPECT_EQ(ps.read<SmallType>("big_value"), static_cast<SmallType>(bigValue));
     }
 }
 
@@ -329,8 +344,8 @@ TEST(ReadWrite, ValuesRangeInVariableFieldLength)
     // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset <= 64; ++offset) {
         for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
-            EXPECT_NE(offset, 0);
-            EXPECT_NE(bitCount, 0);
+            assert(offset != 0);
+            assert(bitCount != 0);
 
             ez::protocol_serializer ps({{"offset", offset}, {"value", bitCount}});
 
@@ -368,8 +383,8 @@ TEST(ReadWrite, Arrays)
     // of whether weird alignment breaks it or not
     for (unsigned int offset = 1; offset <= 64; ++offset) {
         for (unsigned int bitCount = 1; bitCount <= 64; ++bitCount) {
-            EXPECT_NE(offset, 0);
-            EXPECT_NE(bitCount, 0);
+            assert(offset != 0);
+            assert(bitCount != 0);
 
             // Check unsigned limits for this bit count
             {
@@ -422,5 +437,20 @@ TEST(ReadWrite, Arrays)
                 }
             }
         }
+    }
+}
+
+
+TEST(ReadWrite, TypeOverflow)
+{
+    // Specify offset for min and max fields for extra checks
+    // of whether weird alignment breaks it or not
+    for (unsigned int offset = 1; offset < 64; ++offset) {
+        checkTypeOverflowOf<uint8_t, uint16_t>(offset);
+        checkTypeOverflowOf<uint8_t, uint32_t>(offset);
+        checkTypeOverflowOf<uint8_t, uint64_t>(offset);
+        checkTypeOverflowOf<uint16_t, uint32_t>(offset);
+        checkTypeOverflowOf<uint16_t, uint64_t>(offset);
+        checkTypeOverflowOf<uint32_t, uint64_t>(offset);
     }
 }
