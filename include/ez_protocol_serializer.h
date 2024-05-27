@@ -101,7 +101,6 @@ public:
     protocol_serializer(const bool is_little_endian = false,
                         const buffer_source buffer_source = buffer_source::internal,
                         byte_ptr_t const external_buffer = nullptr);
-
     protocol_serializer(const std::vector<field_init>& fields,
                         const bool is_little_endian = false,
                         const buffer_source buffer_source = buffer_source::internal,
@@ -287,11 +286,11 @@ private:
             if (field_metadata.bit_count != 32 && field_metadata.bit_count != 64)
                 return result_code::not_applicable;
 
-        if (m_working_buffer == nullptr)
-            return result_code::bad_input;
-
         if (field_metadata.bit_count > 64)
             return result_code::not_applicable;
+
+        if (m_working_buffer == nullptr)
+            return result_code::bad_input;
 
         memset(m_prealloc_raw_bytes, 0, 65);
         if (std::is_integral<T>::value) {
@@ -351,13 +350,13 @@ private:
             }
         }
 
-        if (m_working_buffer == nullptr) {
-            set_result(result, result_code::bad_input);
+        if (field_metadata.bit_count > 64) {
+            set_result(result, result_code::not_applicable);
             return T{};
         }
 
-        if (field_metadata.bit_count > 64) {
-            set_result(result, result_code::not_applicable);
+        if (m_working_buffer == nullptr) {
+            set_result(result, result_code::bad_input);
             return T{};
         }
 
@@ -409,7 +408,7 @@ private:
                 else
                     m_prealloc_msb = m_prealloc_final_bytes[std::min(field_metadata.bytes_count, static_cast<unsigned int>(sizeof(T))) - 1];
 
-                // If most significant bit is 1 then we need a little trick to return negative value
+                // If most significant bit is 1 then we need a little trick to return negative value (Two's complement method of representing signed integers)
                 if (m_prealloc_msb & (1 << shift_to_reach_most_significant_bit)) {
                     set_result(result, result_code::ok);
                     return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(field_metadata.bit_count, static_cast<unsigned int>(sizeof(T)) * 8)));
@@ -421,22 +420,12 @@ private:
         return *reinterpret_cast<T*>(m_prealloc_final_bytes);
     }
 
-    template<typename... Args>
-    static std::string format_string(const std::string& format, Args... args)
-    {
-        int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
-        if (size_s <= 0) return format;
-        std::unique_ptr<char[]> buf(new char[size_s]);
-        std::snprintf(buf.get(), size_s, format.c_str(), args...);
-        return std::string(buf.get(), buf.get() + size_s - 1);
-    }
-
     std::string int_to_str_leading_zeros(int value, size_t length) const;
 
     void copy_from(const protocol_serializer& other);
     void move_from(protocol_serializer&& other);
 
-    static void shift_left(byte_ptr_t buf, int len, unsigned char shift);
+    static void shift_left (byte_ptr_t buf, int len, unsigned char shift);
     static void shift_right(byte_ptr_t buf, int len, unsigned char shift);
 
     static const std::map<unsigned char, unsigned char>& get_right_masks();
@@ -449,21 +438,22 @@ private:
     void set_result(result_code* result_ptr, const result_code code) const;
 
     internal_buffer_ptr_t m_internal_buffer;
-    unsigned int m_internal_buffer_length = 0;
-    byte_ptr_t m_external_buffer = nullptr;
-    byte_ptr_t m_working_buffer = nullptr;
-    buffer_source m_buffer_source;
+    unsigned int          m_internal_buffer_length = 0;
+    byte_ptr_t            m_external_buffer = nullptr;
+    byte_ptr_t            m_working_buffer = nullptr;
+    buffer_source         m_buffer_source;
 
-    mutable byte_ptr_t m_prealloc_final_bytes = nullptr;
-    mutable uint64_t m_prealloc_val = 0;
-    mutable byte_ptr_t m_prealloc_ptr_to_first_copyable_msb = nullptr; //msb - "Most significant byte"
-    mutable unsigned char m_prealloc_raw_bytes[65] = "";
-    mutable unsigned char m_prealloc_msb = 0;
-    mutable fields_metadata_t::const_iterator m_prealloc_metadata_itt;
+    using metadata_const_itt = fields_metadata_t::const_iterator;
+    mutable byte_ptr_t         m_prealloc_final_bytes = nullptr;
+    mutable uint64_t           m_prealloc_val = 0;
+    mutable byte_ptr_t         m_prealloc_ptr_to_first_copyable_msb = nullptr; //msb - "Most significant byte"
+    mutable unsigned char      m_prealloc_raw_bytes[65] = "";
+    mutable unsigned char      m_prealloc_msb = 0;
+    mutable metadata_const_itt m_prealloc_metadata_itt;
 
-    fields_list_t m_fields;
+    fields_list_t     m_fields;
     fields_metadata_t m_fields_metadata;
-    bool m_is_little_endian;
+    bool              m_is_little_endian;
 };
 
 }
