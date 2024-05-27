@@ -15,10 +15,19 @@ class CreatorFieldWidget : public QWidget
 {
     Q_OBJECT
 public:
-    CreatorFieldWidget(int index, QWidget* parent = nullptr);
+    CreatorFieldWidget(const QString& name,
+                       const unsigned int bitCount,
+                       const ez::protocol_serializer::visualization_type visType,
+                       QWidget* parent = nullptr);
+
     QString getName() const;
+    void setName(const QString& name);
+
     unsigned int getBitCount() const;
+    void setBitCount(const unsigned int count);
+
     ez::protocol_serializer::visualization_type getVisualizationType() const;
+    void setVisualizationType(const ez::protocol_serializer::visualization_type visType);
 
 private:
     int m_index;
@@ -32,8 +41,10 @@ class CreatorWidget : public QWidget
     Q_OBJECT
 public:
     CreatorWidget(QWidget* parent = nullptr);
-    void setProtocolSerializer(ez::protocol_serializer* ps);
 
+    void setProtocolSerializer(ez::protocol_serializer* ps);
+    void appendField(const QString& name, const unsigned int bitCount, const ez::protocol_serializer::visualization_type visType);
+    void submit();
 signals:
     void protocolSerializerChanged();
 

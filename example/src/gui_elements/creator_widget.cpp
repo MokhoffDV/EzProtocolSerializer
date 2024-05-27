@@ -13,51 +13,17 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
 {
     connect(m_addButton, &QPushButton::clicked, this, [this]()
     {
-        m_fieldsLayout->insertWidget(m_fieldsLayout->count() - 1, new CreatorFieldWidget(m_fieldsLayout->count()));
+        appendField(QString("field_%1").arg(m_fieldsLayout->count()), 8, ez::protocol_serializer::visualization_type::signed_integer);
     });
+
     connect(m_removeButton, &QPushButton::clicked, this, [this]()
     {
         if (m_fieldsLayout->count() <= 1)
             return;
         m_fieldsLayout->takeAt(m_fieldsLayout->count() - 2)->widget()->deleteLater();
     });
-    connect(m_submitButton, &QPushButton::clicked, this, [this]()
-    {
-        if (m_ps == nullptr)
-            return;
 
-        // Remember previous working buffer state to restore if needed
-        const unsigned int prevWorkingBufferLength = m_ps->get_internal_buffer_length();
-        std::unique_ptr<unsigned char[]> prevWorkingBufferCopy = nullptr;
-        if (prevWorkingBufferLength > 0) {
-            prevWorkingBufferCopy.reset(new unsigned char[prevWorkingBufferLength]);
-            memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->get_working_buffer(), prevWorkingBufferLength);
-        }
-        m_ps->clear_protocol();
-
-        bool errorOccured = false;
-        for (int i = 0; i < m_fieldsLayout->count() - 1; ++i) {
-            CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_fieldsLayout->itemAt(i)->widget());
-            if (fieldItem == nullptr)
-                continue;
-
-            const ez::protocol_serializer::result_code resultCode = m_ps->append_field({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getVisualizationType()});
-            if (resultCode != ez::protocol_serializer::result_code::ok) {
-                errorOccured = true;
-                break;
-            }
-        }
-
-        if (errorOccured)
-            m_ps->clear_protocol();
-
-        // Check new length, copy old values if possible
-        const unsigned int newWorkingBufferLength = m_ps->get_internal_buffer_length();
-        if (prevWorkingBufferLength > 0 && newWorkingBufferLength > 0)
-            memcpy(m_ps->get_working_buffer(), prevWorkingBufferCopy.get(), std::min(prevWorkingBufferLength, newWorkingBufferLength));
-
-        emit protocolSerializerChanged();
-    });
+    connect(m_submitButton, &QPushButton::clicked, this, &CreatorWidget::submit);
 
     connect(m_isLittleEndianCheckbox, &QCheckBox::stateChanged, this, [this](bool checked)
     {
@@ -80,22 +46,62 @@ CreatorWidget::CreatorWidget(QWidget* parent /* = nullptr */)
     setLayout(m_mainLayout);
 }
 
-CreatorFieldWidget::CreatorFieldWidget(int index, QWidget* parent /* = nullptr */)
+void CreatorWidget::submit()
+{
+    if (m_ps == nullptr)
+        return;
+
+    // Remember previous working buffer state to restore if needed
+    const unsigned int prevWorkingBufferLength = m_ps->get_internal_buffer_length();
+    std::unique_ptr<unsigned char[]> prevWorkingBufferCopy = nullptr;
+    if (prevWorkingBufferLength > 0) {
+        prevWorkingBufferCopy.reset(new unsigned char[prevWorkingBufferLength]);
+        memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->get_working_buffer(), prevWorkingBufferLength);
+    }
+    m_ps->clear_protocol();
+
+    bool errorOccured = false;
+    for (int i = 0; i < m_fieldsLayout->count() - 1; ++i) {
+        CreatorFieldWidget* fieldItem = static_cast<CreatorFieldWidget*>(m_fieldsLayout->itemAt(i)->widget());
+        if (fieldItem == nullptr)
+            continue;
+
+        const ez::protocol_serializer::result_code resultCode = m_ps->append_field({fieldItem->getName().toStdString(), fieldItem->getBitCount(), fieldItem->getVisualizationType()});
+        if (resultCode != ez::protocol_serializer::result_code::ok) {
+            errorOccured = true;
+            break;
+        }
+    }
+
+    if (errorOccured)
+        m_ps->clear_protocol();
+
+    // Check new length, copy old values if possible
+    const unsigned int newWorkingBufferLength = m_ps->get_internal_buffer_length();
+    if (prevWorkingBufferLength > 0 && newWorkingBufferLength > 0)
+        memcpy(m_ps->get_working_buffer(), prevWorkingBufferCopy.get(), std::min(prevWorkingBufferLength, newWorkingBufferLength));
+
+    emit protocolSerializerChanged();
+}
+
+CreatorFieldWidget::CreatorFieldWidget(const QString& name,
+                                       const unsigned int bitCount,
+                                       const ez::protocol_serializer::visualization_type visType,
+                                       QWidget* parent /* = nullptr */)
     : QWidget(parent)
-    , m_index(index)
-    , m_nameEdit(new QLineEdit(QString("field_%1").arg(m_index)))
+    , m_nameEdit(new QLineEdit(name))
     , m_bitCountSpinbox(new QSpinBox())
     , m_visTypeCombo(new QComboBox())
 {
     m_nameEdit->setPlaceholderText("Field name...");
     m_nameEdit->setToolTip("Field name");
     m_bitCountSpinbox->setRange(1, 32768);
-    m_bitCountSpinbox->setValue(8);
+    m_bitCountSpinbox->setValue(bitCount);
     m_bitCountSpinbox->setToolTip("Bit count");
     m_visTypeCombo->addItem("signed_integer", static_cast<int>(ez::protocol_serializer::visualization_type::signed_integer));
     m_visTypeCombo->addItem("unsigned_integer", static_cast<int>(ez::protocol_serializer::visualization_type::unsigned_integer));
     m_visTypeCombo->addItem("floating_point", static_cast<int>(ez::protocol_serializer::visualization_type::floating_point));
-    m_visTypeCombo->setCurrentIndex(0);
+    m_visTypeCombo->setCurrentIndex(static_cast<int>(visType));
     m_visTypeCombo->setProperty("prev_index", m_visTypeCombo->currentIndex());
     m_visTypeCombo->setToolTip("Visualization type");
 
@@ -142,9 +148,19 @@ QString CreatorFieldWidget::getName() const
     return m_nameEdit->text();
 }
 
+void CreatorFieldWidget::setName(const QString& name)
+{
+    m_nameEdit->setText(name);
+}
+
 unsigned int CreatorFieldWidget::getBitCount() const
 {
     return m_bitCountSpinbox->value();
+}
+
+void CreatorFieldWidget::setBitCount(const unsigned int count)
+{
+    m_bitCountSpinbox->setValue(count);
 }
 
 ez::protocol_serializer::visualization_type CreatorFieldWidget::getVisualizationType() const
@@ -152,7 +168,17 @@ ez::protocol_serializer::visualization_type CreatorFieldWidget::getVisualization
     return static_cast<ez::protocol_serializer::visualization_type>(m_visTypeCombo->currentData().toInt());
 }
 
+void CreatorFieldWidget::setVisualizationType(const ez::protocol_serializer::visualization_type visType)
+{
+    m_visTypeCombo->setCurrentIndex(static_cast<int>(visType));
+}
+
 void CreatorWidget::setProtocolSerializer(ez::protocol_serializer* ps)
 {
     m_ps = ps;
+}
+
+void CreatorWidget::appendField(const QString& name, const unsigned int bitCount, const ez::protocol_serializer::visualization_type visType)
+{
+    m_fieldsLayout->insertWidget(m_fieldsLayout->count() - 1, new CreatorFieldWidget(name, bitCount, visType));
 }
