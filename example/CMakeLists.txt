@@ -30,7 +30,7 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}. You can change this by specifyi
 
 # Set up sources
 set(EZ_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set(EZ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+set(EZ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(EZ_SOURCES 	"${EZ_SOURCES_DIR}/main.cpp"

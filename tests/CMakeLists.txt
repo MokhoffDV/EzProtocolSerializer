@@ -16,7 +16,7 @@ enable_testing()
 
 # Set up executable
 set(EZ_SOURCES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(EZ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+set(EZ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 set(EZ_SOURCES 	"${EZ_SOURCES_DIR}/ez_protocol_serializer_tests.cpp"
 				"${EZ_INCLUDE_DIR}/ez_protocol_serializer.cpp")
 set(EZ_HEADERS 	"${EZ_INCLUDE_DIR}/ez_protocol_serializer.h")
