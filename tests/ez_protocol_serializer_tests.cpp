@@ -410,11 +410,11 @@ TEST(ReadWrite, Arrays)
                 std::unique_ptr<uint64_t[]> writtenArray = std::make_unique<uint64_t[]>(values.size());
                 for (int i = 0; i < values.size(); ++i)
                     writtenArray[i] = values.at(i);
-                ps.write_array<uint64_t>("array", writtenArray.get(), values.size());
+                ps.write_array("array", writtenArray, values.size());
 
                 // Read array
                 std::unique_ptr<uint64_t[]> readArray = std::make_unique<uint64_t[]>(values.size());
-                ps.read_array<uint64_t>("array", readArray.get(), values.size());
+                ps.read_array("array", readArray, values.size());
                 for (int i = 0; i < values.size(); ++i) {
                     EXPECT_EQ(values[i], writtenArray[i]);
                     EXPECT_EQ(writtenArray[i], readArray[i]);
@@ -436,11 +436,11 @@ TEST(ReadWrite, Arrays)
                 std::unique_ptr<int64_t[]> writtenArray = std::make_unique<int64_t[]>(values.size());
                 for (int i = 0; i < values.size(); ++i)
                     writtenArray[i] = values.at(i);
-                ps.write_array<int64_t>("array", writtenArray.get(), values.size());
+                ps.write_array("array", writtenArray, values.size());
 
                 // Read array
                 std::unique_ptr<int64_t[]> readArray = std::make_unique<int64_t[]>(values.size());
-                ps.read_array<int64_t>("array", readArray.get(), values.size());
+                ps.read_array(std::string("array"), readArray, values.size());
                 for (int i = 0; i < values.size(); ++i) {
                     EXPECT_EQ(values[i], writtenArray[i]);
                     EXPECT_EQ(writtenArray[i], readArray[i]);

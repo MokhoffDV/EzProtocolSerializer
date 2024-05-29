@@ -165,8 +165,8 @@ public:
         return _write(field_metadata(field_first_bit, field_bit_count), value);
     }
 
-    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    result_code write_array(const std::string& name, const T* array, const size_t size)
+    template<class Array>
+    result_code write_array(const std::string& name, Array& array, const size_t size)
     {
         if (size == 0)
             return result_code::bad_input;
@@ -190,8 +190,8 @@ public:
         return result_code::ok;
     }
 
-    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    result_code write_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, const T* array, const size_t size)
+    template<class Array>
+    result_code write_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, Array& array, const size_t size)
     {
         if (field_bit_count % size)
             return result_code::not_applicable;
@@ -224,8 +224,23 @@ public:
         return _read<T>(field_metadata(field_first_bit, field_bit_count), result);
     }
 
-    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    void read_array(const std::string& name, T* array, const size_t size, result_code* result = nullptr) const
+    template<class Array>
+    void read_array(const std::string& name, Array& array, const size_t size, result_code* result = nullptr) const
+    {
+        using ElementType = typename std::decay<decltype(std::declval<Array>()[0])>::type;
+        _read_array<Array, ElementType>(name, array, size, result);
+    }
+
+    template<class Array>
+    void _read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, Array& array, const size_t size, result_code* result = nullptr)
+    {
+        using ElementType = typename std::decay<decltype(std::declval<Array>()[0])>::type;
+        _read_ghost_array<Array, ElementType>(field_first_bit, field_bit_count, array, size, result);
+    }
+
+private:
+    template<class Array, class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    void _read_array(const std::string& name, Array& array, const size_t size, result_code* result = nullptr) const
     {
         m_prealloc_metadata_itt = m_fields_metadata.find(name);
         if (m_prealloc_metadata_itt == m_fields_metadata.cend()) {
@@ -253,8 +268,8 @@ public:
         set_result(result, result_code::ok);
     }
 
-    template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    void read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, T* array, const size_t size, result_code* result = nullptr)
+    template<class Array, class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    void _read_ghost_array(const unsigned int field_first_bit, const unsigned int field_bit_count, Array& array, const size_t size, result_code* result = nullptr)
     {
         if (field_bit_count % size) {
             set_result(result, result_code::not_applicable);
@@ -275,7 +290,6 @@ public:
         set_result(result, result_code::ok);
     }
 
-private:
     template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     result_code _write(const field_metadata& field_metadata, const T& value)
     {
