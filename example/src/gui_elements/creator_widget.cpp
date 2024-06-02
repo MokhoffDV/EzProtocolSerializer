@@ -56,7 +56,7 @@ void CreatorWidget::submit()
     std::unique_ptr<unsigned char[]> prevWorkingBufferCopy = nullptr;
     if (prevWorkingBufferLength > 0) {
         prevWorkingBufferCopy.reset(new unsigned char[prevWorkingBufferLength]);
-        memcpy_s(prevWorkingBufferCopy.get(), prevWorkingBufferLength, m_ps->get_working_buffer(), prevWorkingBufferLength);
+        memcpy(prevWorkingBufferCopy.get(), m_ps->get_working_buffer(), prevWorkingBufferLength);
     }
     m_ps->clear_protocol();
 
