@@ -3,11 +3,11 @@
 
 using ez::protocol_serializer;
 
-protocol_serializer::protocol_serializer(const bool is_little_endian, const protocol_serializer::buffer_source buffer_source, byte_ptr_t const external_buffer)
-    : m_is_little_endian(is_little_endian)
-    , m_buffer_source(buffer_source)
+protocol_serializer::protocol_serializer(const bool is_little_endian, const protocol_serializer::buffer_source source, byte_ptr_t const external_buffer)
+    : m_buffer_source(source)
+    , m_is_little_endian(is_little_endian)
 {
-    if (buffer_source == buffer_source::internal)
+    if (source == buffer_source::internal)
         m_working_buffer = m_internal_buffer.get();
     else {
         m_external_buffer = external_buffer;
@@ -15,11 +15,11 @@ protocol_serializer::protocol_serializer(const bool is_little_endian, const prot
     }
 }
 
-protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool is_little_endian, const buffer_source buffer_source, byte_ptr_t const external_buffer)
-    : protocol_serializer(is_little_endian, buffer_source, external_buffer)
+protocol_serializer::protocol_serializer(const std::vector<field_init>& fields, const bool is_little_endian, const buffer_source source, byte_ptr_t const external_buffer)
+    : protocol_serializer(is_little_endian, source, external_buffer)
 {
-    for (const field_init& field_init : fields) {
-        if (append_field(field_init) != result_code::ok) {
+    for (const field_init& init : fields) {
+        if (append_field(init) != result_code::ok) {
             clear_protocol();
             return;
         }
@@ -98,9 +98,9 @@ bool protocol_serializer::get_is_little_endian() const
     return m_is_little_endian;
 }
 
-void protocol_serializer::set_buffer_source(const protocol_serializer::buffer_source buffer_source)
+void protocol_serializer::set_buffer_source(const protocol_serializer::buffer_source source)
 {
-    m_buffer_source = buffer_source;
+    m_buffer_source = source;
     m_working_buffer = m_buffer_source == buffer_source::internal ? m_internal_buffer.get() : m_external_buffer;
 }
 
@@ -621,17 +621,17 @@ void ez::protocol_serializer::set_result(result_code* result_ptr, const result_c
     *result_ptr = code;
 }
 
-protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const visualization_type vis_type)
+protocol_serializer::field_metadata::field_metadata(const unsigned int first_bit_index, const unsigned int bits_count, const visualization_type type)
 {
-    this->vis_type = vis_type;
-    this->first_bit_ind = first_bit_ind;
-    this->bit_count = bit_count;
-    bytes_count = bit_count / 8 + ((bit_count % 8) ? 1 : 0);
-    first_byte_ind = first_bit_ind / 8;
-    unsigned int last_byte_ind = (first_bit_ind + bit_count - 1) / 8;
+    this->vis_type = type;
+    this->first_bit_ind = first_bit_index;
+    this->bit_count = bits_count;
+    bytes_count = bits_count / 8 + ((bits_count % 8) ? 1 : 0);
+    first_byte_ind = first_bit_index / 8;
+    unsigned int last_byte_ind = (first_bit_index + bits_count - 1) / 8;
     touched_bytes_count = last_byte_ind - first_byte_ind + 1;
-    left_spacing = first_bit_ind % 8;
-    right_spacing = (8 - (first_bit_ind + bit_count) % 8) % 8;
+    left_spacing = first_bit_index % 8;
+    right_spacing = (8 - (first_bit_index + bits_count) % 8) % 8;
 
     first_mask = 0xFF;
     last_mask = 0xFF;

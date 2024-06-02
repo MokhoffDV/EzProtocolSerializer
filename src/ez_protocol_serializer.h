@@ -45,7 +45,7 @@ public:
 
     struct field_metadata
     {
-        field_metadata(const unsigned int first_bit_ind, const unsigned int bit_count, const visualization_type vis_type = visualization_type::signed_integer);
+        field_metadata(const unsigned int first_bit_index, const unsigned int bits_count, const visualization_type type = visualization_type::signed_integer);
         unsigned int first_byte_ind;
         unsigned int bytes_count;
         unsigned int touched_bytes_count;
@@ -99,11 +99,11 @@ public:
 
     // Creation
     protocol_serializer(const bool is_little_endian = false,
-                        const buffer_source buffer_source = buffer_source::internal,
+                        const buffer_source source = buffer_source::internal,
                         byte_ptr_t const external_buffer = nullptr);
     protocol_serializer(const std::vector<field_init>& fields,
                         const bool is_little_endian = false,
-                        const buffer_source buffer_source = buffer_source::internal,
+                        const buffer_source source = buffer_source::internal,
                         byte_ptr_t const external_buffer = nullptr);
     protocol_serializer(const protocol_serializer& other);
     protocol_serializer& operator=(const protocol_serializer& other);
@@ -134,7 +134,7 @@ public:
     }
 
     // Buffers
-    void                         set_buffer_source(const buffer_source buffer_source);
+    void                         set_buffer_source(const buffer_source source);
     buffer_source                get_buffer_source() const;
     const internal_buffer_ptr_t& get_internal_buffer() const;
     unsigned int                 get_internal_buffer_length() const;
