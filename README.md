@@ -1,5 +1,5 @@
 # EzProtocolSerializer
-`EzProtocolSerializer` is a poweful C++ serialization tool which is capable of `reading/writing` values to/from binary buffer in compliance with established protocol with respect to `byte order of host` aswell as specified `byte order of a protocol`. Apart from reading and writing capabilities, `EzProtocolSerializer` provides a couple of powerful tools for `buffer visualization`, which can be very useful for debugging binary data.
+`EzProtocolSerializer` is a powerful C++ serialization tool which is capable of `reading/writing` values to/from binary buffer in compliance with established protocol with respect to `byte order of host` as well as specified `byte order of a protocol`. Apart from reading and writing capabilities, `EzProtocolSerializer` provides a couple of powerful tools for `buffer visualization`, which can be very useful for debugging binary data.
 
 ## Visualization Output Sample (screenshots from [Example Application](#building-example-application))
 <img src="./images/first_protocol_sample.png" width=800/>
