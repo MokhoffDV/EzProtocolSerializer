@@ -100,9 +100,9 @@ void EditorWidget::regenerate()
                 rowsLayout[currentWordInd]->setStretch(lastWidgetInRowIndex, currentBitInd - firstBitIndInsideCurrentWord + 1);
 
                 // Listen to changes made to field value
-                connect(static_cast<EditorFieldWidget*>(rowsLayout[currentWordInd]->itemAt(lastWidgetInRowIndex)->widget()), &EditorFieldWidget::fieldValueChanged, this, [this](const QString& fieldName)
+                connect(static_cast<EditorFieldWidget*>(rowsLayout[currentWordInd]->itemAt(lastWidgetInRowIndex)->widget()), &EditorFieldWidget::fieldValueChanged, this, [this](const QString& name)
                 {
-                    read(fieldName);
+                    read(name);
                     emit fieldValueChanged();
                 });
             }
