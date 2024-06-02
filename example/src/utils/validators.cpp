@@ -13,7 +13,7 @@ QValidator::State UInt64Validator::validate(QString& input, int& pos) const
         return Intermediate;
     bool ok;
     const quint64 value = input.toULongLong(&ok);
-    if (ok && value >= 0 && value <= m_max)
+    if (ok && value <= m_max)
         return Acceptable;
     return Invalid;
 }
@@ -22,7 +22,7 @@ void UInt64Validator::fixup(QString& input) const
 {
     bool ok;
     const quint64 value = input.toULongLong(&ok);
-    if (!ok || value < 0)
+    if (!ok)
         input = "0";
     else if (value > m_max)
         input = QString::number(m_max);
