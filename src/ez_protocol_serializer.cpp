@@ -525,9 +525,9 @@ void protocol_serializer::shift_left(byte_ptr_t buf, int len, unsigned char shif
     }
 }
 
-const std::map<unsigned char, unsigned char>& protocol_serializer::get_right_masks()
+const std::unordered_map<unsigned char, unsigned char>& protocol_serializer::get_right_masks()
 {
-    static const std::map<unsigned char, unsigned char> right_masks{
+    static const std::unordered_map<unsigned char, unsigned char> right_masks{
         {0,0x00},
         {1,0x01},
         {2,0x03},
@@ -540,9 +540,9 @@ const std::map<unsigned char, unsigned char>& protocol_serializer::get_right_mas
     return right_masks;
 }
 
-const std::map<unsigned char, unsigned char>& protocol_serializer::get_left_masks()
+const std::unordered_map<unsigned char, unsigned char>& protocol_serializer::get_left_masks()
 {
-    static const std::map<unsigned char, unsigned char> left_masks{
+    static const std::unordered_map<unsigned char, unsigned char> left_masks{
         {0,0x00},
         {1,0x80},
         {2,0xC0},

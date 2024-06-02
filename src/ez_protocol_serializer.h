@@ -1,7 +1,6 @@
 #ifndef EZ_PROTOCOL_SERIALIZER
 #define EZ_PROTOCOL_SERIALIZER
 
-#include <map>
 #include <list>
 #include <memory>
 #include <vector>
@@ -442,9 +441,9 @@ private:
     static void shift_left (byte_ptr_t buf, int len, unsigned char shift);
     static void shift_right(byte_ptr_t buf, int len, unsigned char shift);
 
-    static const std::map<unsigned char, unsigned char>& get_right_masks();
-    static const std::map<unsigned char, unsigned char>& get_left_masks();
-    static const std::vector<std::string>&               get_half_byte_binary();
+    static const std::unordered_map<unsigned char, unsigned char>& get_right_masks();
+    static const std::unordered_map<unsigned char, unsigned char>& get_left_masks();
+    static const std::vector<std::string>& get_half_byte_binary();
 
     void reallocate_internal_buffer();
     void update_internal_buffer();
