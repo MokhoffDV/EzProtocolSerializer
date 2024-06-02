@@ -175,13 +175,13 @@ public:
         if (m_prealloc_metadata_itt == m_fields_metadata.cend())
             return result_code::field_not_found;
 
-        const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bit_count % size)
+        const field_metadata& metadata = m_prealloc_metadata_itt->second;
+        if (metadata.bit_count % size)
             return result_code::not_applicable;
 
-        const unsigned char ghost_field_length = field_init.bit_count / size;
+        const unsigned char ghost_field_length = metadata.bit_count / size;
         for (unsigned int i = 0; i < size; ++i) {
-            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghost_field_length;
+            const unsigned int first_bit_ind = metadata.first_bit_ind + i * ghost_field_length;
             const result_code result = write_ghost(first_bit_ind, ghost_field_length, array[i]);
             if (result != result_code::ok)
                 return result;
@@ -248,15 +248,15 @@ private:
             return;
         }
 
-        const field_metadata& field_init = m_prealloc_metadata_itt->second;
-        if (field_init.bit_count % size) {
+        const field_metadata& metadata = m_prealloc_metadata_itt->second;
+        if (metadata.bit_count % size) {
             set_result(result, result_code::not_applicable);
             return;
         }
 
-        const unsigned char ghost_field_length = field_init.bit_count / size;
+        const unsigned char ghost_field_length = metadata.bit_count / size;
         for (unsigned int i = 0; i < size; ++i) {
-            const unsigned int first_bit_ind = field_init.first_bit_ind + i * ghost_field_length;
+            const unsigned int first_bit_ind = metadata.first_bit_ind + i * ghost_field_length;
             result_code local_result = result_code::ok;
             array[i] = read_ghost<T>(first_bit_ind, ghost_field_length, &local_result);
             if (local_result != result_code::ok) {
@@ -291,16 +291,16 @@ private:
     }
 
     template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    result_code _write(const field_metadata& field_metadata, const T& value)
+    result_code _write(const field_metadata& metadata, const T& value)
     {
-        if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8)
+        if (m_is_little_endian && metadata.bit_count > 8 && metadata.bit_count % 8)
             return result_code::not_applicable;
 
         if (std::is_floating_point<T>::value)
-            if (field_metadata.bit_count != 32 && field_metadata.bit_count != 64)
+            if (metadata.bit_count != 32 && metadata.bit_count != 64)
                 return result_code::not_applicable;
 
-        if (field_metadata.bit_count > 64)
+        if (metadata.bit_count > 64)
             return result_code::not_applicable;
 
         if (m_working_buffer == nullptr)
@@ -311,60 +311,60 @@ private:
             m_prealloc_val = value;
             m_prealloc_ptr_to_first_copyable_msb = (byte_ptr_t)&m_prealloc_val;
             if (!get_is_host_little_endian()) {
-                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - field_metadata.bytes_count;
+                m_prealloc_ptr_to_first_copyable_msb += sizeof(uint64_t) - metadata.bytes_count;
             }
-            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, field_metadata.bytes_count);
+            memcpy(m_prealloc_raw_bytes, m_prealloc_ptr_to_first_copyable_msb, metadata.bytes_count);
             if (get_is_host_little_endian() != m_is_little_endian)
-                for (uint32_t i = 0; i < field_metadata.bytes_count / 2; ++i)
-                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[field_metadata.bytes_count - 1 - i]);
+                for (uint32_t i = 0; i < metadata.bytes_count / 2; ++i)
+                    std::swap(m_prealloc_raw_bytes[i], m_prealloc_raw_bytes[metadata.bytes_count - 1 - i]);
         } else if (std::is_floating_point<T>::value) {
-            if (field_metadata.bytes_count == 4) {
+            if (metadata.bytes_count == 4) {
                 float val = value;
                 memcpy(m_prealloc_raw_bytes, &val, 4);
-            } else if (field_metadata.bytes_count == 8) {
+            } else if (metadata.bytes_count == 8) {
                 double val = value;
                 memcpy(m_prealloc_raw_bytes, &val, 8);
             }
         }
 
-        if (field_metadata.left_spacing == 0 && field_metadata.right_spacing == 0) {
-            memcpy(m_working_buffer + field_metadata.first_byte_ind, m_prealloc_raw_bytes, field_metadata.bytes_count);
+        if (metadata.left_spacing == 0 && metadata.right_spacing == 0) {
+            memcpy(m_working_buffer + metadata.first_byte_ind, m_prealloc_raw_bytes, metadata.bytes_count);
             return result_code::ok;
         }
 
         m_prealloc_final_bytes = m_prealloc_raw_bytes;
-        if (field_metadata.right_spacing) {
-            shift_right(m_prealloc_raw_bytes, field_metadata.bytes_count + 1, 8 - field_metadata.right_spacing);
-            if (unsigned char transferable_bits_count = field_metadata.bit_count % 8)
-                if (8 - field_metadata.right_spacing >= transferable_bits_count)
+        if (metadata.right_spacing) {
+            shift_right(m_prealloc_raw_bytes, metadata.bytes_count + 1, 8 - metadata.right_spacing);
+            if (unsigned char transferable_bits_count = metadata.bit_count % 8)
+                if (8 - metadata.right_spacing >= transferable_bits_count)
                     m_prealloc_final_bytes = m_prealloc_raw_bytes + 1;
         }
 
         unsigned char mask = 0;
-        for (uint32_t i = 0; i < field_metadata.touched_bytes_count; ++i) {
-            mask = i == 0 ? field_metadata.first_mask : i != field_metadata.touched_bytes_count - 1 ? 0xFF : field_metadata.last_mask;
-            m_working_buffer[field_metadata.first_byte_ind + i] &= ~mask;
-            m_working_buffer[field_metadata.first_byte_ind + i] |= m_prealloc_final_bytes[i] & mask;
+        for (uint32_t i = 0; i < metadata.touched_bytes_count; ++i) {
+            mask = i == 0 ? metadata.first_mask : i != metadata.touched_bytes_count - 1 ? 0xFF : metadata.last_mask;
+            m_working_buffer[metadata.first_byte_ind + i] &= ~mask;
+            m_working_buffer[metadata.first_byte_ind + i] |= m_prealloc_final_bytes[i] & mask;
         }
 
         return result_code::ok;
     }
 
     template<class T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    T _read(const field_metadata& field_metadata, result_code* result = nullptr) const
+    T _read(const field_metadata& metadata, result_code* result = nullptr) const
     {
-        if (m_is_little_endian && field_metadata.bit_count > 8 && field_metadata.bit_count % 8) {
+        if (m_is_little_endian && metadata.bit_count > 8 && metadata.bit_count % 8) {
             set_result(result, result_code::not_applicable);
             return T{};
         }
         if (std::is_floating_point<T>::value) {
-            if (field_metadata.bit_count != 32 && field_metadata.bit_count != 64) {
+            if (metadata.bit_count != 32 && metadata.bit_count != 64) {
                 set_result(result, result_code::not_applicable);
                 return T{};
             }
         }
 
-        if (field_metadata.bit_count > 64) {
+        if (metadata.bit_count > 64) {
             set_result(result, result_code::not_applicable);
             return T{};
         }
@@ -379,33 +379,33 @@ private:
         if (get_is_host_little_endian())
             m_prealloc_final_bytes = m_prealloc_raw_bytes;
         else
-            m_prealloc_final_bytes = m_prealloc_raw_bytes + 64 - field_metadata.touched_bytes_count;
-        memcpy(m_prealloc_final_bytes, m_working_buffer + field_metadata.first_byte_ind, field_metadata.touched_bytes_count);
+            m_prealloc_final_bytes = m_prealloc_raw_bytes + 64 - metadata.touched_bytes_count;
+        memcpy(m_prealloc_final_bytes, m_working_buffer + metadata.first_byte_ind, metadata.touched_bytes_count);
 
         // Apply masks and shift if necessary in order to align less significant bit of copied value with real less significant bit
-        if (field_metadata.right_spacing || field_metadata.left_spacing) {
-            m_prealloc_final_bytes[0] &= field_metadata.first_mask;
-            if (field_metadata.touched_bytes_count > 1)
-                m_prealloc_final_bytes[field_metadata.touched_bytes_count - 1] &= field_metadata.last_mask;
+        if (metadata.right_spacing || metadata.left_spacing) {
+            m_prealloc_final_bytes[0] &= metadata.first_mask;
+            if (metadata.touched_bytes_count > 1)
+                m_prealloc_final_bytes[metadata.touched_bytes_count - 1] &= metadata.last_mask;
 
-            if (field_metadata.right_spacing) {
-                shift_right(m_prealloc_final_bytes, field_metadata.touched_bytes_count, field_metadata.right_spacing);
-                m_prealloc_final_bytes += field_metadata.touched_bytes_count - field_metadata.bytes_count;
+            if (metadata.right_spacing) {
+                shift_right(m_prealloc_final_bytes, metadata.touched_bytes_count, metadata.right_spacing);
+                m_prealloc_final_bytes += metadata.touched_bytes_count - metadata.bytes_count;
             }
         }
 
         // Return floating point value
         if (std::is_floating_point<T>::value) {
-            if (field_metadata.bytes_count == 4)
+            if (metadata.bytes_count == 4)
                 return static_cast<T>(*reinterpret_cast<float*>(m_prealloc_final_bytes));
-            else if (field_metadata.bytes_count == 8)
+            else if (metadata.bytes_count == 8)
                 return static_cast<T>(*reinterpret_cast<double*>(m_prealloc_final_bytes));
         }
 
         // Swap bytes if byte orders do not match
         if (get_is_host_little_endian() != m_is_little_endian)
-            for (uint32_t i = 0; i < field_metadata.bytes_count / 2; ++i)
-                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[field_metadata.bytes_count - i - 1]);
+            for (uint32_t i = 0; i < metadata.bytes_count / 2; ++i)
+                std::swap(m_prealloc_final_bytes[i], m_prealloc_final_bytes[metadata.bytes_count - i - 1]);
 
         // Back the pointer off for correct reinterpret cast
         if (!get_is_host_little_endian())
@@ -414,18 +414,18 @@ private:
         // If we read a signed value, then reinterpret cast will only work if most significant bit (which determines sign)
         // of the value exactly matches expected position for type T (we could read a 3-bit signed value, then cast will not work)
         if (std::is_signed<T>::value) {
-            const unsigned char shift_to_reach_most_significant_bit = 7 - (field_metadata.left_spacing + field_metadata.right_spacing) % 8;
-            const bool regular_cast_is_enough = field_metadata.bytes_count == sizeof(T) && shift_to_reach_most_significant_bit == 7;
+            const unsigned char shift_to_reach_most_significant_bit = 7 - (metadata.left_spacing + metadata.right_spacing) % 8;
+            const bool regular_cast_is_enough = metadata.bytes_count == sizeof(T) && shift_to_reach_most_significant_bit == 7;
             if (!regular_cast_is_enough) {
                 if (!get_is_host_little_endian())
-                    m_prealloc_msb = m_prealloc_raw_bytes[64 - std::min(field_metadata.bytes_count, static_cast<unsigned int>(sizeof(T)))];
+                    m_prealloc_msb = m_prealloc_raw_bytes[64 - std::min(metadata.bytes_count, static_cast<unsigned int>(sizeof(T)))];
                 else
-                    m_prealloc_msb = m_prealloc_final_bytes[std::min(field_metadata.bytes_count, static_cast<unsigned int>(sizeof(T))) - 1];
+                    m_prealloc_msb = m_prealloc_final_bytes[std::min(metadata.bytes_count, static_cast<unsigned int>(sizeof(T))) - 1];
 
                 // If most significant bit is 1 then we need a little trick to return negative value (Two's complement method of representing signed integers)
                 if (m_prealloc_msb & (1 << shift_to_reach_most_significant_bit)) {
                     set_result(result, result_code::ok);
-                    return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(field_metadata.bit_count, static_cast<unsigned int>(sizeof(T)) * 8)));
+                    return *reinterpret_cast<T*>(m_prealloc_final_bytes) - ((uint64_t)1 << (std::min(metadata.bit_count, static_cast<unsigned int>(sizeof(T)) * 8)));
                 }
             }
         }
