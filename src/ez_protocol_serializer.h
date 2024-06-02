@@ -111,7 +111,7 @@ public:
     protocol_serializer& operator=(protocol_serializer&& other) noexcept;
 
     // Protocol description
-    result_code     append_field(const field_init& field_init, bool preserve_internal_buffer_values = true);
+    result_code     append_field(const field_init& init, bool preserve_internal_buffer_values = true);
     result_code     append_protocol(const protocol_serializer& other, bool preserve_internal_buffer_values = true);
     result_code     remove_field(const std::string& name, bool preserve_internal_buffer_values = true);
     result_code     remove_last_field(bool preserve_internal_buffer_values = true);

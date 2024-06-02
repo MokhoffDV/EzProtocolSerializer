@@ -364,15 +364,15 @@ ez::protocol_serializer::byte_ptr_t protocol_serializer::get_field_pointer(const
     return m_working_buffer + metadata.first_byte_ind;
 }
 
-ez::protocol_serializer::result_code protocol_serializer::append_field(const field_init& field_init, bool preserve_internal_buffer_values)
+ez::protocol_serializer::result_code protocol_serializer::append_field(const field_init& init, bool preserve_internal_buffer_values)
 {
-    if (m_fields_metadata.find(field_init.name) != m_fields_metadata.cend())
+    if (m_fields_metadata.find(init.name) != m_fields_metadata.cend())
         return result_code::bad_input;
 
-    if (field_init.bit_count == 0 || field_init.name.empty())
+    if (init.bit_count == 0 || init.name.empty())
         return result_code::bad_input;
 
-    if (field_init.vis_type == visualization_type::floating_point && field_init.bit_count != 32 && field_init.bit_count != 64)
+    if (init.vis_type == visualization_type::floating_point && init.bit_count != 32 && init.bit_count != 64)
         return result_code::not_applicable;
 
     unsigned int first_bit_index = 0;
@@ -381,8 +381,8 @@ ez::protocol_serializer::result_code protocol_serializer::append_field(const fie
         first_bit_index = last_field_metadata.first_bit_ind + last_field_metadata.bit_count;
     }
 
-    m_fields.push_back(field_init.name);
-    m_fields_metadata.insert(fields_metadata_t::value_type(field_init.name, field_metadata(first_bit_index, field_init.bit_count, field_init.vis_type)));
+    m_fields.push_back(init.name);
+    m_fields_metadata.insert(fields_metadata_t::value_type(init.name, field_metadata(first_bit_index, init.bit_count, init.vis_type)));
 
     if (preserve_internal_buffer_values)
         update_internal_buffer();
